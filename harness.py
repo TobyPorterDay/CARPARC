@@ -28,6 +28,8 @@ def _get_vocab():
 
 def classify(title):
     """Return a predicted label for the listing title, or None."""
+    # Rule: One string, raw listing title, return one string from the vocab
+    # or none - nothing else.
     return clf.classify(title, _get_vocab())
 
 

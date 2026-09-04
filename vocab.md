@@ -16,42 +16,18 @@ record that forced them.
 - Ambiguities records cases where precedence gives an answer you disagree with.
   If that table gets long, the definitions are wrong.
 
-## Precedence
+## Values and precedence
+
+The numbered `###` sections below are the single copy of this vocabulary. Their
+headings are the canonical strings — labels must match a heading exactly — and
+their order is the precedence order.
 
 Apply top to bottom. First match wins. Do not skip a rung because a lower one
 "feels more right" — record that in Ambiguities instead.
 
-1. Mirrors
-2. Lighting
-3. Engine
-4. Transmission
-5. Drivetrain
-6. Electronics
-7. Moveable panels
-8. Fixed panels
-9. Exterior trim
-10. Interior
-11. Structural
-12. Other
-
-## Values
-
-Canonical strings. Labels must match these exactly.
-
-| # | Value |
-|---|-------|
-| 1 | Mirrors |
-| 2 | Lighting |
-| 3 | Engine |
-| 4 | Transmission |
-| 5 | Drivetrain |
-| 6 | Electronics |
-| 7 | Moveable panels |
-| 8 | Fixed panels |
-| 9 | Exterior trim |
-| 10 | Interior |
-| 11 | Structural |
-| 12 | Other |
+This list is not repeated anywhere else in this file, and `classify.load_vocab`
+parses these headings directly. To add, rename, remove or reorder a value, edit
+the section headings and nothing else.
 
 ---
 

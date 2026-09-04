@@ -132,6 +132,72 @@ table because a number is being predicted before it is observed.
 
 ---
 
+### Note — Trade Me API access
+
+Not a rep: no prediction, no measurement. Recorded because it constrains what
+the system can be built against.
+
+**Date:** 05/09
+
+- The sandbox key works against `api.tmsandbox.co.nz`.
+- Search requires a full OAuth token; the consumer key alone is insufficient.
+- Applied for production API access 05/09, pending approval.
+
+---
+
+### Note — constant-label baseline, and two values the harness cannot score
+
+Not a rep: no prediction was written before these numbers were observed, so no
+calibration row. Recorded because both findings change what a score means.
+
+**Date:** 05/09
+
+**How measured:** a throwaway module (since deleted) built `(Listing, Predicted)`
+pairs and passed them to `harness.score()` directly. `harness.py` was not edited
+— `score()` takes pairs, so any callable can be measured without touching it.
+`harness.classify()` is a convenience wrapper, not a required path.
+
+**Finding 1 — classify.py is below the do-nothing baseline.**
+
+A function that ignores the title and returns the same label every time was run
+once per vocab value, against the same 40-row gold set:
+
+| Constant | Score | Constant | Score |
+|---|---|---|---|
+| Moveable panels | 7/40 | Mirrors | 3/40 |
+| Fixed panels | 7/40 | Interior | 3/40 |
+| Exterior trim | 7/40 | Lighting | 2/40 |
+| Structural | 5/40 | Drivetrain | 2/40 |
+| Engine | 3/40 | Transmission | 1/40 |
+
+`classify.py` scores 3/40. Three constants score 7/40. A function with no
+inputs beats the dictionary lookup by more than 2x, so **7/40 (17%) is the
+floor** any real classifier must clear to be worth having. The 3/40 in the
+Session 02 / Task 4 entry above is not a weak result — it is worse than nothing.
+
+**Finding 2 — `Electronics` and `Other` are unscoreable.**
+
+Both score a hard 0/40 as constants, and not because they are never correct:
+neither value appears in Labels.csv, and `score()` validates predictions against
+`SELECT DISTINCT Label FROM gold`, not against vocab.md. Gold holds 10 of the 12
+values, so those two are rejected as invalid labels before any comparison runs.
+
+This compounds Task 4's result. `classify.py` returns `other` for 37/40
+listings, and every one is counted wrong on that ground alone — regardless of
+whether `Other` was the right call. Until gold covers all 12 values, "wrong" and
+"unscoreable" are indistinguishable in the accuracy number.
+
+**What this says about my model of the system:** I have been reading accuracy as
+a measure of the classifier. It is currently measuring the classifier, the gold
+set's coverage, and the harness's own validity rule, all in one number.
+
+**What I'd predict next, and why:** adding `Electronics` and `Other` rows to
+gold will move the score without any change to classify.py — the 37 `other`
+predictions stop being auto-wrong. That confounds the next rep, so it should be
+done as its own change, with its own prediction, before any LLM work.
+
+---
+
 
 ---
 

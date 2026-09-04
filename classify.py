@@ -17,21 +17,22 @@ VOCAB_PATH = "vocab.md"
 LABELS_PATH = "Labels.csv"
 OUTPUT_PATH = "data/predictions.csv"
 
-ROW_RE = re.compile(r"^\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|")
+VALUE_RE = re.compile(r"^###\s*(\d+)\.\s*(.+?)\s*$")
 
 
 def load_vocab(path):
-    """Parse the '## Values' table in vocab.md and return the list of values."""
+    """Return the vocab values from vocab.md's numbered '### N. Value' headings.
+
+    Those headings are the only copy of the list — the section order is also
+    the precedence order, so the values come back in precedence order.
+    """
     values = []
     with open(path, encoding="utf-8") as f:
         for line in f:
-            match = ROW_RE.match(line)
+            match = VALUE_RE.match(line)
             if not match:
                 continue
-            value = match.group(2).strip()
-            if value == "Value":  # header row
-                continue
-            values.append(value)
+            values.append(match.group(2).strip())
     return values
 
 
