@@ -145,7 +145,7 @@ the system can be built against.
 
 ---
 
-### Note — constant-label baseline, and two values the harness cannot score
+### Note — constant-label baseline, and two values gold does not cover
 
 Not a rep: no prediction was written before these numbers were observed, so no
 calibration row. Recorded because both findings change what a score means.
@@ -175,26 +175,44 @@ inputs beats the dictionary lookup by more than 2x, so **7/40 (17%) is the
 floor** any real classifier must clear to be worth having. The 3/40 in the
 Session 02 / Task 4 entry above is not a weak result — it is worse than nothing.
 
-**Finding 2 — `Electronics` and `Other` are unscoreable.**
+**Finding 2 — `Electronics` and `Other` cannot score above 0.**
 
-Both score a hard 0/40 as constants, and not because they are never correct:
-neither value appears in Labels.csv, and `score()` validates predictions against
-`SELECT DISTINCT Label FROM gold`, not against vocab.md. Gold holds 10 of the 12
-values, so those two are rejected as invalid labels before any comparison runs.
+*Cause corrected 05/09. The original wording of this finding blamed the
+harness's validity rule. That was wrong — see below.*
+
+Both score a hard 0/40 as constants. The reason is simply that **neither value
+occurs anywhere in the gold set**: Labels.csv uses 10 of the 12 vocab values,
+and `Electronics` and `Other` are the two it never uses. No gold row carries
+those labels, so the equality test cannot match on any of the 40 rows. 0/40 is
+the arithmetic, not a rejection.
+
+`score()` does also refuse labels absent from `SELECT DISTINCT Label FROM gold`,
+and that guard fires here too — but it is not what produces the zero. Verified
+by re-running the join with the guard removed entirely: `Electronics` still
+scores 0/40. The two causes coincide, and I mistook the incidental one for the
+operative one.
 
 This compounds Task 4's result. `classify.py` returns `other` for 37/40
-listings, and every one is counted wrong on that ground alone — regardless of
-whether `Other` was the right call. Until gold covers all 12 values, "wrong" and
-"unscoreable" are indistinguishable in the accuracy number.
+listings, and every one is wrong against this gold set — not as a scoring
+artifact, but because no row in it is labelled `Other`. That is a statement
+about gold's coverage, and the harness is reporting it correctly. Whether those
+37 listings *should* have been labelled `Other` is a question the gold set
+cannot currently answer either way.
 
-**What this says about my model of the system:** I have been reading accuracy as
-a measure of the classifier. It is currently measuring the classifier, the gold
-set's coverage, and the harness's own validity rule, all in one number.
+**What this says about my model of the system:** two things. First, accuracy
+here measures the classifier and the gold set's coverage together, not the
+classifier alone. Second, and more usefully: I read the harness's validity
+check, saw it fire, and stopped — without asking whether the score would differ
+if it did not. When two mechanisms predict the same observation, noting the
+first one is not a finding. The one-line check that separated them (drop the
+guard, re-run) is the cheapest thing I skipped.
 
 **What I'd predict next, and why:** adding `Electronics` and `Other` rows to
-gold will move the score without any change to classify.py — the 37 `other`
-predictions stop being auto-wrong. That confounds the next rep, so it should be
-done as its own change, with its own prediction, before any LLM work.
+gold will move the score with no change to classify.py at all — some of the 37
+`other` predictions would land on rows actually labelled `Other` and start
+scoring as correct. The classifier would look better without having changed.
+That confounds the next rep, so extending gold's coverage should be its own
+change, with its own prediction, before any LLM work.
 
 ---
 
