@@ -17,13 +17,6 @@ VOCAB_PATH = "vocab.md"
 LABELS_PATH = "Labels.csv"
 OUTPUT_PATH = "data/predictions.csv"
 
-# vocab.md has a typo ("Exteriror Light") that doesn't match the spelling
-# used in Labels.csv ("Exterior Light"). Correct it here without editing
-# vocab.md itself.
-SPELLING_FIXES = {
-    "Exteriror Light": "Exterior Light",
-}
-
 ROW_RE = re.compile(r"^\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|")
 
 
@@ -38,7 +31,7 @@ def load_vocab(path):
             value = match.group(2).strip()
             if value == "Value":  # header row
                 continue
-            values.append(SPELLING_FIXES.get(value, value))
+            values.append(value)
     return values
 
 

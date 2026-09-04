@@ -103,6 +103,35 @@ Uncategorised / other: N/A
 ---
 
 <!-- Paste the next entry below this line. Newest at the bottom. -->
+### Session 02 / Task 4 — harness against the re-labelled gold set
+
+Not a rep: no error sample, no single change. Recorded for the calibration
+table because a number is being predicted before it is observed.
+
+**Date:** 02/09
+
+**Initial setup**
+- Data: Labels.csv, 40 rows, re-labelled under vocab.md V2 (12 values, frozen at Task 1)
+- System: classify.py, unchanged except SPELLING_FIXES removed
+- Metric: accuracy, computed in SQL by the Task 2 harness
+
+**Prediction** — written before the harness was run
+- Predicted score: 36/40 (0.90)
+- Reasoning: The updated vocab set covers the majority of parts on a car.
+- Written at: 02/09 04:06 NZST
+
+**Result**
+- Observed score: 3/40 (0.075) — harness printed `score=0.07 n=40`, hand count 3/40, exact agreement
+- Signed error (observed - predicted): -0.825 (predicted 0.90, observed 0.075) — optimistic
+- Measured at: 03/09 04:54 NZST
+
+**Explanation**
+- Why the gap: 37/40 listings were predicted as other
+- What this says about my model of the system: Choosing categories to cover the entire car doesn't align with the keywords used in most parts listings.
+- What I'd predict next, and why: An LLM element will need to be added to the system to improve the accuracy score
+
+---
+
 
 ---
 
@@ -115,7 +144,7 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | Week | Rep | Prediction | Result | Signed error |
 |---|---|---|---|---|
 | 0 | 0 | 32% | 32% | 0 |
-|  |  |  |  |  |
+| 1 | S02/T4 | 90% | 7.5% | -82.5pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
