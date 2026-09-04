@@ -7,6 +7,7 @@
 
 import duckdb
 
+import classify as clf
 import harness
 
 
@@ -42,7 +43,7 @@ def test_hand_count_against_gold_set():
     con = duckdb.connect()
     listings = harness.load_gold(con)
 
-    predictions = [(listing, harness.classify(listing)) for (listing,) in listings]
+    predictions = [(listing, clf.classify(listing)) for (listing,) in listings]
 
     correct, n, accuracy = harness.score(con, predictions)
 

@@ -36,11 +36,26 @@ def load_vocab(path):
     return values
 
 
-def classify(title, vocab):
-    """Return the vocab value whose keyword appears earliest in title, else 'other'."""
+_vocab = None
+
+
+def _get_vocab():
+    """Load vocab.md once and cache it, so classify() needs only a title."""
+    global _vocab
+    if _vocab is None:
+        _vocab = load_vocab(VOCAB_PATH)
+    return _vocab
+
+
+def classify(title):
+    """Return the vocab value whose keyword appears earliest in title, else 'other'.
+
+    One string in (the raw listing title), one string from the vocab out. The
+    vocabulary is an internal detail, loaded on first use from VOCAB_PATH.
+    """
     lower_title = title.lower()
     matches = []
-    for value in vocab:
+    for value in _get_vocab():
         keyword = value.lower()
         pattern = r"\b" + re.escape(keyword) + r"\b"
         m = re.search(pattern, lower_title)
@@ -53,15 +68,13 @@ def classify(title, vocab):
 
 
 def main():
-    vocab = load_vocab(VOCAB_PATH)
-
     with open(LABELS_PATH, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         listings = [row["Listing"] for row in reader]
 
     predictions = []
     for title in listings:
-        label = classify(title, vocab)
+        label = classify(title)
         predictions.append((title, label))
         print(f"{title} -> {label}")
 

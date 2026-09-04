@@ -1,36 +1,21 @@
 """Scoring harness for CARPARC.
 
-Loads Labels.csv into DuckDB once, classifies each listing title, joins
-the predictions to the gold set in SQL, and computes accuracy in SQL.
+Loads Labels.csv into DuckDB once, joins predictions to the gold set in SQL,
+and computes accuracy in SQL.
 
-Callers deal in titles only. classify() still needs vocab.md to invoke
-the real classifier (classify.py's own API), but scoring validates
-predicted labels against the distinct labels present in gold, not
-vocab.md.
+This module knows nothing about any particular classifier. score() takes
+(Listing, Predicted) pairs, so the thing being measured is supplied by the
+caller — see main() for how the classify.py baseline is wired in. Scoring
+validates predicted labels against the distinct labels present in gold, not
+against vocab.md.
+
+The function under test must obey: one string in (the raw listing title), one
+string from the vocab or None out — nothing else.
 """
 
 import duckdb
 
-import classify as clf
-
 LABELS_PATH = "Labels.csv"
-VOCAB_PATH = "vocab.md"
-
-_vocab = None
-
-
-def _get_vocab():
-    global _vocab
-    if _vocab is None:
-        _vocab = clf.load_vocab(VOCAB_PATH)
-    return _vocab
-
-
-def classify(title):
-    """Return a predicted label for the listing title, or None."""
-    # Rule: One string, raw listing title, return one string from the vocab
-    # or none - nothing else.
-    return clf.classify(title, _get_vocab())
 
 
 def load_gold(con):
@@ -96,10 +81,14 @@ def score(con, predictions):
 
 
 def main():
+    # The one place a named classifier is bound. Imported here, not at module
+    # level, so the harness itself stays independent of what it measures.
+    import classify as clf
+
     con = duckdb.connect()
     listings = load_gold(con)
 
-    predictions = [(listing, classify(listing)) for (listing,) in listings]
+    predictions = [(listing, clf.classify(listing)) for (listing,) in listings]
 
     correct, n, accuracy = score(con, predictions)
     print(f"score={correct}/{n} ({accuracy:.2f})")
