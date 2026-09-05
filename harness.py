@@ -3,19 +3,27 @@
 Loads Labels.csv into DuckDB once, joins predictions to the gold set in SQL,
 and computes accuracy in SQL.
 
-This module knows nothing about any particular classifier. score() takes
-(Listing, Predicted) pairs, so the thing being measured is supplied by the
-caller — see main() for how the classify.py baseline is wired in. Scoring
-validates predicted labels against the distinct labels present in gold, not
-against vocab.md.
+score() takes (Listing, Predicted) pairs, so the thing being measured is
+supplied by the caller. REPS is the module-level registry of named
+classifiers main() loops over; import harness and read harness.REPS to see
+or reuse that binding elsewhere (e.g. from tests). Scoring validates
+predicted labels against the distinct labels present in gold, not against
+vocab.md.
 
-The function under test must obey: one string in (the raw listing title), one
+Each function in REPS must obey: one string in (the raw listing title), one
 string from the vocab or None out — nothing else.
 """
 
 import duckdb
 
+import classify as clf
+
 LABELS_PATH = "Labels.csv"
+
+REPS = {
+    "stub": lambda title: None,
+    "classify": clf.classify,
+}
 
 
 def load_gold(con):
@@ -80,18 +88,21 @@ def score(con, predictions):
     return correct, n, accuracy
 
 
-def main():
-    # The one place a named classifier is bound. Imported here, not at module
-    # level, so the harness itself stays independent of what it measures.
-    import classify as clf
+def score_reps(con, listings):
+    """Score every classifier in REPS against listings. Returns {name: (correct, n, accuracy)}."""
+    results = {}
+    for name, classify_fn in REPS.items():
+        predictions = [(listing, classify_fn(listing)) for (listing,) in listings]
+        results[name] = score(con, predictions)
+    return results
 
+
+def main():
     con = duckdb.connect()
     listings = load_gold(con)
 
-    predictions = [(listing, clf.classify(listing)) for (listing,) in listings]
-
-    correct, n, accuracy = score(con, predictions)
-    print(f"score={correct}/{n} ({accuracy:.2f})")
+    for name, (correct, n, accuracy) in score_reps(con, listings).items():
+        print(f"{name}: score={correct}/{n} ({accuracy:.2f})")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 """Assertions for harness.py.
 
 * Gold labels fed back in as predictions score 1.00
-* The "always None" stub scores 0.00
-* classify.py's real classifier scores 3/40, matching a hand count
+* REPS registry ("stub" always None, "classify" the real classifier) is
+  accessible and scores correctly when run through score_reps()
 """
 
 import duckdb
@@ -23,39 +23,34 @@ def test_gold_labels_score_one():
     print(f"gold labels: score={correct}/{n} ({accuracy:.2f})")
 
 
-def test_stub_scores_zero():
-    con = duckdb.connect()
-    listings = harness.load_gold(con)
-
-    stub_predictions = [(listing, None) for (listing,) in listings]
-    correct, n, accuracy = harness.score(con, stub_predictions)
-
-    assert n == 40, f"expected n=40, got {n}"
-    assert correct == 0, f"expected 0/40 correct, got {correct}/{n}"
-    print(f"stub: score={correct}/{n} ({accuracy:.2f})")
+def test_reps_registry_accessible():
+    assert "stub" in harness.REPS
+    assert "classify" in harness.REPS
+    assert harness.REPS["stub"]("anything") is None
+    assert harness.REPS["classify"] is clf.classify
 
 
-def test_hand_count_against_gold_set():
-    # Hand count (03/09, reading all 40 predictions against gold): 3
-    # correct (Engine, Transmission, Mirrors), 37 wrong ("other").
-    HAND_COUNT_CORRECT = 3
+def test_loop_over_reps():
+    # Hand count (03/09, reading all 40 predictions against gold): classify.py
+    # gets 3 correct (Engine, Transmission, Mirrors), 37 wrong ("other"). The
+    # stub always returns None, so it scores 0.
+    expected = {"stub": 0, "classify": 3}
 
     con = duckdb.connect()
     listings = harness.load_gold(con)
 
-    predictions = [(listing, clf.classify(listing)) for (listing,) in listings]
+    results = harness.score_reps(con, listings)
 
-    correct, n, accuracy = harness.score(con, predictions)
-
-    assert n == 40, f"expected n=40, got {n}"
-    assert correct == HAND_COUNT_CORRECT, (
-        f"expected {HAND_COUNT_CORRECT}/{n} correct, got {correct}/{n}"
-    )
-    print(f"classify.py: score={correct}/{n} ({accuracy:.2f})")
+    for name, (correct, n, accuracy) in results.items():
+        assert n == 40, f"{name}: expected n=40, got {n}"
+        assert correct == expected[name], (
+            f"{name}: expected {expected[name]}/{n} correct, got {correct}/{n}"
+        )
+        print(f"{name}: score={correct}/{n} ({accuracy:.2f})")
 
 
 if __name__ == "__main__":
     test_gold_labels_score_one()
-    test_stub_scores_zero()
-    test_hand_count_against_gold_set()
+    test_reps_registry_accessible()
+    test_loop_over_reps()
     print("\nAll assertions passed.")
