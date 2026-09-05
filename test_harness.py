@@ -9,6 +9,7 @@ import duckdb
 
 import classify as clf
 import harness
+import sample_errors
 
 
 def test_gold_labels_score_one():
@@ -49,8 +50,36 @@ def test_loop_over_reps():
         print(f"{name}: score={correct}/{n} ({accuracy:.2f})")
 
 
+def test_sample_errors_deterministic():
+    first = sample_errors.get_samples()
+    second = sample_errors.get_samples()
+
+    assert len(first) <= 20, f"expected at most 20 sample errors, got {len(first)}"
+    assert all(len(row) == 3 for row in first), "each row must be (Listing, Gold, Predicted)"
+    assert first == second, "sample_errors returned different rows on the second run"
+
+
+def test_sample_errors_shrinks_with_fewer_errors():
+    con = duckdb.connect()
+    listings = harness.load_gold(con)
+
+    # Only the first 5 listings are wrong (predicted None); the rest are fed
+    # back their own gold label, so they're correct and not errors.
+    gold_by_listing = dict(con.execute("SELECT Listing, Label FROM gold").fetchall())
+    predictions = [
+        (listing, None if i < 5 else gold_by_listing[listing])
+        for i, (listing,) in enumerate(listings)
+    ]
+
+    errors = harness.sample_errors(con, predictions, n=20)
+
+    assert len(errors) == 5, f"expected 5 errors, got {len(errors)}"
+
+
 if __name__ == "__main__":
     test_gold_labels_score_one()
     test_reps_registry_accessible()
     test_loop_over_reps()
+    test_sample_errors_deterministic()
+    test_sample_errors_shrinks_with_fewer_errors()
     print("\nAll assertions passed.")

@@ -14,6 +14,8 @@ Each function in REPS must obey: one string in (the raw listing title), one
 string from the vocab or None out — nothing else.
 """
 
+import random
+
 import duckdb
 
 import classify as clf
@@ -86,6 +88,38 @@ def score(con, predictions):
             "joining to gold — check for titles that don't match gold.Listing"
         )
     return correct, n, accuracy
+
+
+def sample_errors(con, predictions, n=20, seed=0):
+    """Return a random sample of up to n (Listing, Gold, Predicted) error rows.
+
+    Fewer than n come back if there are fewer than n errors — the sample
+    shrinks as a rep improves rather than padding or erroring.
+
+    "Wrong" matches score()'s definition: no prediction, a prediction not
+    among gold's labels, or a mismatch. The sample is seeded, so the same
+    seed against the same predictions always draws the same rows — random,
+    not first-N, but still reproducible run to run.
+    """
+    con.execute("CREATE OR REPLACE TABLE predictions (Listing VARCHAR, Predicted VARCHAR)")
+    con.executemany("INSERT INTO predictions VALUES (?, ?)", predictions)
+
+    errors = con.execute(
+        """
+        SELECT p.Listing, g.Label, p.Predicted
+        FROM predictions p
+        JOIN gold g
+            ON LOWER(TRIM(p.Listing)) = LOWER(TRIM(g.Listing))
+        LEFT JOIN (SELECT DISTINCT Label FROM gold) v
+            ON LOWER(TRIM(v.Label)) = LOWER(TRIM(p.Predicted))
+        WHERE p.Predicted IS NULL
+           OR v.Label IS NULL
+           OR LOWER(TRIM(p.Predicted)) != LOWER(TRIM(g.Label))
+        ORDER BY p.Listing
+        """
+    ).fetchall()
+
+    return random.Random(seed).sample(errors, min(n, len(errors)))
 
 
 def score_reps(con, listings):
