@@ -3,12 +3,14 @@
 * Gold labels fed back in as predictions score 1.00
 * REPS registry ("stub" always None, "classify" the real classifier) is
   accessible and scores correctly when run through score_reps()
+* label_counts()'s (gold, predicted) pairs agree with score()'s totals
 """
 
 import duckdb
 
 import classify as clf
 import harness
+import label_stats
 import sample_errors
 
 
@@ -76,10 +78,78 @@ def test_sample_errors_shrinks_with_fewer_errors():
     assert len(errors) == 5, f"expected 5 errors, got {len(errors)}"
 
 
+def test_label_counts_agree_with_score():
+    con = duckdb.connect()
+    listings = harness.load_gold(con)
+
+    predictions = [(listing, clf.classify(listing)) for (listing,) in listings]
+    rows = harness.label_counts(con, predictions)
+    correct, n, _ = harness.score(con, predictions)
+
+    assert sum(count for _, _, count in rows) == n, "counts must cover every gold row"
+    diagonal = sum(count for gold, predicted, count in rows if gold == predicted)
+    assert diagonal == correct, "Gold == Predicted rows must sum to score()'s correct"
+
+    # Hand count (03/09): classify.py's only hits are one Engine, one
+    # Mirrors, one Transmission; every other listing is predicted "other",
+    # which isn't a gold label.
+    pairs = {(gold, predicted): count for gold, predicted, count in rows}
+    assert pairs[("Engine", "Engine")] == 1
+    assert pairs[("Mirrors", "Mirrors")] == 1
+    assert pairs[("Transmission", "Transmission")] == 1
+    assert sum(c for (_, p), c in pairs.items() if p == "other") == 37
+
+
+def test_label_counts_all_correct():
+    con = duckdb.connect()
+    harness.load_gold(con)
+
+    gold_labels = con.execute("SELECT Listing, Label FROM gold").fetchall()
+    rows = harness.label_counts(con, gold_labels)
+
+    assert all(gold == predicted for gold, predicted, _ in rows), "no confusions expected"
+    assert sum(count for _, _, count in rows) == 40
+
+
+def test_stub_predicts_none_for_every_listing():
+    rows, (correct, n, _) = label_stats.get_counts("stub")
+
+    assert (correct, n) == (0, 40), f"stub should score 0/40, got {correct}/{n}"
+    assert all(predicted is None for _, predicted, _ in rows), (
+        "stub returns None for everything, so every row must be a None row"
+    )
+
+
+def test_printed_counts_sum_to_gold_size():
+    # Every rep's printed table accounts for all 40 gold listings exactly once.
+    for rep in harness.REPS:
+        rows, (_, n, _) = label_stats.get_counts(rep)
+        cells = label_stats.to_cells(rows)
+
+        assert n == 40, f"{rep}: expected n=40, got {n}"
+        total = sum(count for _, _, count in cells)
+        assert total == 40, f"{rep}: printed counts sum to {total}, expected 40"
+
+
+def test_classify_has_no_none_row():
+    # classify.py always returns a label, so None should not appear at all —
+    # the table reports the None case only when a rep actually produces it.
+    rows, _ = label_stats.get_counts("classify")
+
+    assert not any(predicted is None for _, predicted, _ in rows), (
+        "classify never returns None, so the table must have no None row"
+    )
+
+
 if __name__ == "__main__":
     test_gold_labels_score_one()
     test_reps_registry_accessible()
     test_loop_over_reps()
     test_sample_errors_deterministic()
     test_sample_errors_shrinks_with_fewer_errors()
+    test_label_counts_agree_with_score()
+    test_label_counts_all_correct()
+    test_stub_predicts_none_for_every_listing()
+    test_printed_counts_sum_to_gold_size()
+    test_classify_has_no_none_row()
     print("\nAll assertions passed.")

@@ -122,6 +122,30 @@ def sample_errors(con, predictions, n=20, seed=0):
     return random.Random(seed).sample(errors, min(n, len(errors)))
 
 
+def label_counts(con, predictions):
+    """Count every (gold, predicted) pair. Returns (Gold, Predicted, Count) rows.
+
+    One row per distinct pairing, most common first — the diagonal (Gold ==
+    Predicted) is what score() counts as correct, everything else is a
+    confusion. Predicted comes back as the rep actually returned it,
+    including labels outside gold's vocabulary and None, since which wrong
+    label a rep reaches for is the point of the table.
+    """
+    con.execute("CREATE OR REPLACE TABLE predictions (Listing VARCHAR, Predicted VARCHAR)")
+    con.executemany("INSERT INTO predictions VALUES (?, ?)", predictions)
+
+    return con.execute(
+        """
+        SELECT g.Label AS Gold, p.Predicted, CAST(COUNT(*) AS INTEGER) AS Count
+        FROM predictions p
+        JOIN gold g
+            ON LOWER(TRIM(p.Listing)) = LOWER(TRIM(g.Listing))
+        GROUP BY g.Label, p.Predicted
+        ORDER BY Count DESC, Gold, p.Predicted
+        """
+    ).fetchall()
+
+
 def score_reps(con, listings):
     """Score every classifier in REPS against listings. Returns {name: (correct, n, accuracy)}."""
     results = {}
