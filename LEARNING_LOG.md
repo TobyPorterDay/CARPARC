@@ -216,6 +216,28 @@ change, with its own prediction, before any LLM work.
 
 ---
 
+### Note — Task 7: eval harness complete
+
+Not a rep: no prediction, no measurement, no calibration row.
+
+**Date:** 05–06/09. Five commits, `41183d2`..`3141e41`.
+
+`harness.py` knows nothing about any classifier. `REPS` maps a name to a
+one-argument function; `score_reps()` scores every registered rep in one run;
+`sample_errors()` draws a seeded random sample of wrong rows; `label_counts()`
+counts every (gold, predicted) pair in SQL. Adding a rep is one dictionary
+line. 10 tests, clean.
+
+Two fixes worth remembering, both the same mistake — making output look
+complete at the cost of it being true: the sampler originally took the first 20
+titles alphabetically (repeatable but biased, late-alphabet brands never read),
+and the count table originally printed an invented zero row.
+
+Rep 1 predicts against the **7/40 (17%) constant-label floor**, not against
+`classify.py`'s 3/40.
+
+---
+
 
 ---
 

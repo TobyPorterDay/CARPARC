@@ -14,13 +14,17 @@ Each function in REPS must obey: one string in (the raw listing title), one
 string from the vocab or None out — nothing else.
 """
 
+import os
 import random
 
 import duckdb
 
 import classify as clf
 
-LABELS_PATH = "Labels.csv"
+# Which gold set to score against. Defaults to the part_type miniature set;
+# set CARPARC_GOLD to point the same harness at another one, e.g.
+#   CARPARC_GOLD=data/gold_vehicles_dev.csv python3 harness.py
+LABELS_PATH = os.environ.get("CARPARC_GOLD", "Labels.csv")
 
 REPS = {
     "stub": lambda title: None,
