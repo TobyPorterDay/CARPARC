@@ -102,7 +102,6 @@ Uncategorised / other: N/A
 
 ---
 
-<!-- Paste the next entry below this line. Newest at the bottom. -->
 ### Session 02 / Task 4 — harness against the re-labelled gold set
 
 Not a rep: no error sample, no single change. Recorded for the calibration
@@ -238,6 +237,50 @@ Rep 1 predicts against the **7/40 (17%) constant-label floor**, not against
 
 ---
 
+
+### Note — Rep 1's substrate is built; Rep 1 is not run
+
+Not a rep: no prediction, no measurement, no calibration row. Recorded because
+it changes what is being measured from here on.
+
+**Date:** 07/09
+
+**The field changed.** Everything measured so far was `part_type`. That was the
+Day One Miniature's field. The terminus resolves *vehicle* strings, and all
+five of Week 2's reps are vehicle resolution — nothing in the part_type line
+feeds that ladder. Rep 1 is exact match on vehicles.
+
+**Noisy side.** 1,721 distinct vehicles crawled from partsworld.co.nz
+(31 makes, 491 models). Strings look like `Toyota Celsoir - UCF10`,
+`Nissan Tiida - C11 2004-2012`, `Toyota Landcruiser100 - HZJ100`. Under the
+3,000 cap, so iteration stays fast.
+
+**Canonical side.** NZTA Motor Vehicle Register, read in full: **5,850,736
+rows** across all 37 vehicle years, zero malformed rows, **149,666 distinct
+MAKE|MODEL pairs**. Coverage by cut:
+
+| Cut | Pairs kept | % of fleet |
+|---|---|---|
+| n>=1 | 149,666 | 100% |
+| n>=3 | 28,310 | 97.6% |
+| n>=5 | 17,830 | 97.0% |
+| n>=10 | 10,267 | 96.2% |
+
+That long tail is the register's own free-text noise. `build_canonical.py`
+prints the cut's coverage on every run so the number stays reportable.
+
+**Gold set.** 200 vehicles, seed 20260907, split 100 dev / 100 held-out.
+Random over distinct strings, so the hand-selection bias in the 40-row
+part_type set is gone. Held-out is touched twice: at labelling, and Week 4.
+
+**Two things this does not fix.** The 40-row part_type gold set stays in
+history but is no longer scored against. And Partsworld's catalogue is
+semi-structured (`Make Model - Variant`), so it is a cleaner noisy side than
+free-text marketplace listings — worth a line in the limitations.
+
+---
+
+<!-- Paste the next entry below this line. Newest at the bottom. -->
 
 ---
 
