@@ -255,19 +255,26 @@ feeds that ladder. Rep 1 is exact match on vehicles.
 `Nissan Tiida - C11 2004-2012`, `Toyota Landcruiser100 - HZJ100`. Under the
 3,000 cap, so iteration stays fast.
 
-**Canonical side.** NZTA Motor Vehicle Register, read in full: **5,850,736
-rows** across all 37 vehicle years, zero malformed rows, **149,666 distinct
-MAKE|MODEL pairs**. Coverage by cut:
+**Canonical side.** NZTA Motor Vehicle Register, built from the all-years file
+(31 Aug 2026): **5,880,234 rows**, **193,948 distinct MAKE|MODEL pairs**.
+Coverage by cut:
 
 | Cut | Pairs kept | % of fleet |
 |---|---|---|
-| n>=1 | 149,666 | 100% |
-| n>=3 | 28,310 | 97.6% |
-| n>=5 | 17,830 | 97.0% |
-| n>=10 | 10,267 | 96.2% |
+| n>=1 | 193,948 | 100.00% |
+| n>=3 | 35,409 | 96.96% |
+| n>=5 | 22,246 | 96.21% |
+| n>=10 | 12,728 | 95.16% <- using |
+| n>=25 | 6,539 | 93.58% |
+| n>=100 | 2,607 | 90.37% |
 
-That long tail is the register's own free-text noise. `build_canonical.py`
-prints the cut's coverage on every run so the number stays reportable.
+**Pre-1990 is 6.5% of the fleet but 26% of the distinct pairs.** 380,380 rows
+carry 50,615 pairs, and **44,338 of those appear nowhere after 1989** —
+Kingswood, Cortina, Valiant, Morris Minor, Model A. So the canonical side's
+long tail is not mostly typos, as assumed: a quarter of it is classic
+vehicles that are genuinely on the register. That changes what the cut is
+throwing away, and it is worth re-checking in Week 4 whether n>=10 quietly
+deletes the classics Partsworld actually stocks.
 
 **Gold set.** 200 vehicles, seed 20260907, split 100 dev / 100 held-out.
 Random over distinct strings, so the hand-selection bias in the 40-row

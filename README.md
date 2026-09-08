@@ -24,7 +24,7 @@ That is the entire public surface. Nothing else ships in v0.1.0.
 | | Source | Size | Licence |
 |---|---|---|---|
 | Noisy side | partsworld.co.nz vehicle catalogue | 1,721 distinct vehicles | scraped, titles only |
-| Canonical side | NZTA Motor Vehicle Register | 5,850,736 rows, 149,666 distinct make/model | CC-BY 4.0 |
+| Canonical side | NZTA Motor Vehicle Register | 5,880,234 rows, 193,948 distinct make/model | CC-BY 4.0 |
 
 The register's own documentation notes its free-text fields carry "spelling
 mistakes and inconsistent wording" that survived NZTA's algorithmic cleaning.
@@ -42,9 +42,11 @@ curl -L -o data/mvr/Fleet-data-all-vehicle-years.zip \
 python3 build_canonical.py        # -> data/mvr_canonical_vehicles.csv
 ```
 
-`build_canonical.py` aggregates in DuckDB and prints the fleet coverage its
-cut achieves, so the number is reportable rather than assumed. Default cut is
-`fleet_count >= 10`; pass a different minimum as an argument.
+The zip is expanded once to `.csv.gz` (DuckDB reads `.csv`, `.csv.gz` and
+`.csv.zst`, but not `.zip`), then aggregated in SQL. Takes about 30 seconds.
+Default cut is `fleet_count >= 10` — 12,728 pairs, 95.16% of the fleet — and
+the script prints coverage at every candidate cut so the threshold is chosen
+against numbers.
 
 ## Measuring
 
@@ -82,8 +84,10 @@ Reported as point estimates until small-n results make intervals necessary.
 - TODO: label-noise ceiling — measured Week 4, caps everything above.
 - TODO: held-out independence — the split is random over distinct vehicle
   strings, but strings from one make are not independent of each other.
-- The canonical cut discards long-tail make/model pairs; `build_canonical.py`
-  prints exactly how much fleet that loses.
+- The canonical cut discards long-tail pairs. Note that the tail is not all
+  noise: pre-1990 vehicles are 6.5% of the fleet but 26% of distinct pairs,
+  and 44,338 pairs appear nowhere after 1989. Re-check in Week 4 whether the
+  cut deletes classics the corpus actually contains.
 - Partsworld's catalogue is semi-structured (`Make Model - Variant`), so it is
   a cleaner noisy side than free-text marketplace listings would be.
 
