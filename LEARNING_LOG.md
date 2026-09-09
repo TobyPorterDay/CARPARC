@@ -300,7 +300,7 @@ free-text marketplace listings — worth a line in the limitations.
 
 **Prediction** — written before running
 - Predicted score: 93/100 (0.93)
-- Reasoning (one or two lines): TODO
+- Reasoning (one or two lines): I hand-labelled them myself, and only a few of them weren't obvious.
 - Written at: 10/09 05:30 NZST
 
 **Baseline results**
