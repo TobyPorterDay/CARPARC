@@ -289,6 +289,45 @@ free-text marketplace listings — worth a line in the limitations.
 
 <!-- Paste the next entry below this line. Newest at the bottom. -->
 
+### Rep 1 — exact match, vehicles
+
+**Date:** 10/09
+
+**Initial setup**
+- Data:            data/gold_vehicles_dev.csv, 100 rows, labelled MAKE|MODEL (1 row labelled NONE). Frozen at 3dce7a7.
+- System:          exact match against data/mvr_canonical_vehicles.csv (12,728 pairs, fleet_count >= 10)
+- Metric:          accuracy, correct / n, computed in SQL by harness.score()
+
+**Prediction** — written before running
+- Predicted score: 93/100 (0.93)
+- Reasoning (one or two lines): TODO
+- Written at: 10/09 05:30 NZST
+
+**Baseline results**
+- Score:
+- n:
+- Notes:
+
+**Error categories** (sample of 20, all read)
+| # | Category | Count | Example |
+|---|---|---|---|
+| 1 |  |  |  |
+| 2 |  |  |  |
+| 3 |  |  |  |
+| 4 |  |  |  |
+Uncategorised / other:
+
+**Result**
+- Observed score:
+- Signed error (observed - predicted):
+- Measured at:
+
+**Explanation**
+- Why the gap:
+- What this says about my model of the system:
+- What I'd predict next, and why:
+
+
 ---
 
 ## Calibration table
