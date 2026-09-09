@@ -297,6 +297,8 @@ free-text marketplace listings — worth a line in the limitations.
 - Data:            data/gold_vehicles_dev.csv, 100 rows, labelled MAKE|MODEL (1 row labelled NONE). Frozen at 3dce7a7.
 - System:          exact match against data/mvr_canonical_vehicles.csv (12,728 pairs, fleet_count >= 10)
 - Metric:          accuracy, correct / n, computed in SQL by harness.score()
+- No-match:        the rep returns the string "NONE", not Python None, so the one
+                   NONE-labelled row is scorable. Ceiling is 100/100, not 99/100.
 
 **Prediction** — written before running
 - Predicted score: 93/100 (0.93)
