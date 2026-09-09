@@ -8,7 +8,7 @@ the JDM name, the export name and the chassis code all disagree with each other.
 Returning `None` is a first-class outcome.
 
 **Status: pre-v0.1.0.** Instrument built, corpus collected, gold set drawn and
-awaiting labels. No resolution logic yet — that is Rep 1.
+labelled, 100 dev / 100 held-out. No resolution logic yet — that is Rep 1.
 
 ## The two functions
 
