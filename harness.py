@@ -20,6 +20,7 @@ import random
 import duckdb
 
 import classify as clf
+import vehicle_classify as vclf
 
 # Which gold set to score against. Defaults to the part_type miniature set;
 # set CARPARC_GOLD to point the same harness at another one, e.g.
@@ -29,6 +30,7 @@ LABELS_PATH = os.environ.get("CARPARC_GOLD", "Labels.csv")
 REPS = {
     "stub": lambda title: None,
     "classify": clf.classify,
+    "exact_match": vclf.match,
 }
 
 

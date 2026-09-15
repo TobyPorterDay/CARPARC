@@ -12,6 +12,7 @@ import classify as clf
 import harness
 import label_stats
 import sample_errors
+import vehicle_classify as vclf
 
 
 def test_gold_labels_score_one():
@@ -29,15 +30,19 @@ def test_gold_labels_score_one():
 def test_reps_registry_accessible():
     assert "stub" in harness.REPS
     assert "classify" in harness.REPS
+    assert "exact_match" in harness.REPS
     assert harness.REPS["stub"]("anything") is None
     assert harness.REPS["classify"] is clf.classify
+    assert harness.REPS["exact_match"] is vclf.match
 
 
 def test_loop_over_reps():
     # Hand count (03/09, reading all 40 predictions against gold): classify.py
     # gets 3 correct (Engine, Transmission, Mirrors), 37 wrong ("other"). The
-    # stub always returns None, so it scores 0.
-    expected = {"stub": 0, "classify": 3}
+    # stub always returns None, so it scores 0. exact_match is a vehicle
+    # (Make|Model) rep scored here against the part_type gold set, so none of
+    # its predictions can ever equal a part_type label — it also scores 0.
+    expected = {"stub": 0, "classify": 3, "exact_match": 0}
 
     con = duckdb.connect()
     listings = harness.load_gold(con)

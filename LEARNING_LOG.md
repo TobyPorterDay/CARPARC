@@ -289,13 +289,13 @@ free-text marketplace listings — worth a line in the limitations.
 
 <!-- Paste the next entry below this line. Newest at the bottom. -->
 
-### Rep 1 — exact match, vehicles
+### Rep 1 — Contains model anywhere, vehicles
 
 **Date:** 10/09
 
 **Initial setup**
 - Data:            data/gold_vehicles_dev.csv, 100 rows, labelled MAKE|MODEL (1 row labelled NONE). Frozen at 3dce7a7.
-- System:          exact match against data/mvr_canonical_vehicles.csv (12,728 pairs, fleet_count >= 10)
+- System:          model exists in data/mvr_canonical_vehicles.csv (12,728 pairs, fleet_count >= 10)
 - Metric:          accuracy, correct / n, computed in SQL by harness.score()
 - No-match:        the rep returns the string "NONE", not Python None, so the one
                    NONE-labelled row is scorable. Ceiling is 100/100, not 99/100.
@@ -306,29 +306,28 @@ free-text marketplace listings — worth a line in the limitations.
 - Written at: 10/09 05:30 NZST
 
 **Baseline results**
-- Score:
-- n:
-- Notes:
+- Score: 91/100 (0.91)
+- n: 100
+- Notes: 9 errors across 4 categories, none uncategorised.
 
-**Error categories** (sample of 20, all read)
+**Error categories** (sample of 9, all errors)
 | # | Category | Count | Example |
 |---|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-| 4 |  |  |  |
-Uncategorised / other:
+| 1 | Prediction is the parent model line; gold is the specific variant | 3 | Listing: BMW 3 Series E36 - 318i, Gold: BMW\|318, Predicted: BMW\|3 SERIES |
+| 2 | A short model name matched characters belonging to another word — a year, or the make itself | 3 | Listing: Mazda CX7 - ER 2006-2012, Gold: MAZDA\|CX-7, Predicted: MAZDA\|2 |
+| 3 | A make named inside the listing won the tie-break over the actual make | 1 | Listing: Dodge Ram 1500 - 94-01, Gold: DODGE\|RAM, Predicted: RAM\|1500 |
+| 4 | Listing uses the JDM name, the register uses the export name — no substring can match | 2 | Listing: Toyota Surf - RZN130, Gold: TOYOTA\|4RUNNER, Predicted: NONE |
+Uncategorised / other: 0
 
 **Result**
-- Observed score:
-- Signed error (observed - predicted):
-- Measured at:
+- Observed score: 91/100 (0.91)
+- Signed error (observed - predicted): -2pp
+- Measured at: 11/09 05:46 NZST
 
 **Explanation**
-- Why the gap:
-- What this says about my model of the system:
-- What I'd predict next, and why:
-
+- Why the gap: The predictions were at a higher level than the gold label. General model vs the specific submodel. The wrong sections of the string were selected. The gold label is different to the registry.
+- What this says about my model of the system: The rule for selecting the closest model string is wrong
+- What I'd predict next, and why: Adding a rule that recognises the main model string should lower the error rate
 
 ---
 
@@ -342,7 +341,7 @@ Fill the row at the same time as the entry. Never backfill from memory.
 |---|---|---|---|---|
 | 0 | 0 | 32% | 32% | 0 |
 | 1 | S02/T4 | 90% | 7.5% | -82.5pp |
-|  |  |  |  |  |
+| 1 | 1 | 93% | 91% | -2pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |

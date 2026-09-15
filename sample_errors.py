@@ -12,7 +12,7 @@ import duckdb
 import harness
 
 N = 20
-REP = "classify"
+REP = "exact_match"
 
 
 def get_samples(n=N):

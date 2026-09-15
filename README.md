@@ -75,7 +75,7 @@ python3 label_vehicles.py         # labels the dev set
 | Rep | Approach | Accuracy | n |
 |---|---|---|---|
 | — | constant-label floor (part_type) | 7/40 (0.17) | 40 |
-| 1 | exact match | TODO | 100 |
+| 1 | contains model anywhere | 91/100 (0.91) | 100 |
 
 Reported as point estimates until small-n results make intervals necessary.
 
