@@ -150,14 +150,14 @@ def main():
     import sys
 
     if len(sys.argv) > 1:
-        print(match(" ".join(sys.argv[1:])))
+        print(fuzzy_match(" ".join(sys.argv[1:])))
         return
 
     with open("data/gold_vehicles_dev.csv", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             title = row["Listing"]
-            print(f"{title} -> {match(title)}")
+            print(f"{title} -> {fuzzy_match(title)}")
 
 
 if __name__ == "__main__":

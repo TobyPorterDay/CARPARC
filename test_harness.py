@@ -43,10 +43,15 @@ def test_rep2_fuzzy_is_called_through_registry():
     # function the harness would call and asserts a real label comes back,
     # so a rep that is registered but never actually invoked — or invoked
     # and returning something the harness can't score — fails here.
+    #
+    # The title is deliberately absent from both gold sets, so the test
+    # doesn't lean on a row the rep is scored against. The register holds
+    # only the punctuated C-HR, so the unpunctuated listing has one right
+    # answer — the repaired scorer finds it, the original returned NONE.
     classify_fn = harness.REPS["rep2_fuzzy"]
-    label = classify_fn("Mazda CX7 - ER 2006-2012")
+    label = classify_fn("Toyota CHR - NGX10 2016-2020")
 
-    assert label == "MAZDA|CX-7", f"expected MAZDA|CX-7 from the repaired rep, got {label!r}"
+    assert label == "TOYOTA|C-HR", f"expected TOYOTA|C-HR from the repaired rep, got {label!r}"
     assert classify_fn("Nothing matches here at all") == "NONE"
 
 

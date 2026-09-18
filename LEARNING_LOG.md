@@ -374,9 +374,12 @@ on all 100 rows, so its errors are Rep 1's errors. The table for the measured
 system is in Iteration 2a below.
 
 **Explanation** (of the void run)
-- Why the gap: No difference to rep 1
-- What this says about my model of the system: Using the string to identify matches is not the right method
-- What I'd predict next, and why: More information needs to be considered from the NZTA database and the listing to find a match
+- Why the gap: Predicted 10 breaks and 3 fixes, got 0 and 0.
+- What this says about my model of the system: token_set_ratio scored the whole
+  title, so a match was decided by whether the words were present, the same
+  variable as test 1.
+- What I'd predict next, and why: Score make and model separately against short
+  runs of words and delete punctuation, so similarity has something to decide.
 
 #### Iteration 2a — same rep, repaired scorer
 
@@ -439,19 +442,45 @@ punctuated form for CX-7, because the register carries both spellings as
 separate rows. The register disagrees with itself, and no threshold can
 settle that — the tie-break decides it.
 
-**Error categories** (sample of 20, all read — split survivors vs new)
+**Error categories** (11 errors, all read — split survivors vs new)
 | # | Category | Survivor / New | Count | Example |
 |---|---|---|---|---|
-| 1 | The prediction is correct, but the string doesn't match the gold string | New | 3 | Mazda MX5 - NB 1998-2005, gold=MAZDA|MX5, predicted=MAZDA|MX-5 |
-| 2 | Listing uses the JDM name, the register uses the export name — no substring can match | Survivor | 3 | Toyota Surf - RZN130, gold=TOYOTA|4RUNNER, predicted=NONE |
-| 3 | Prediction is the parent model line; gold is the specific variant | Survivor | 3 | BMW 3 Series E36 - 318i, gold=BMW|318, predicted=BMW|3 SERIES |
-| 4 |  |  |  |  |
-Uncategorised / other:
+| 1 | Punctuation collision: prediction and gold are the same vehicle spelled differently, and the tie-break picked the other spelling | New | 3 | Mazda MX5 - NB 1998-2005, gold=MAZDA\|MX5, predicted=MAZDA\|MX-5 |
+| 2 | Listing uses the JDM name, the register uses the export name — no string match is possible | Survivor | 2 | Toyota Surf - RZN130, gold=TOYOTA\|4RUNNER, predicted=NONE |
+| 3 | Prediction is the parent model line; gold is the specific variant | Survivor | 3 | BMW 3 Series E36 - 318i, gold=BMW\|318, predicted=BMW\|3 SERIES |
+| 4 | A make named inside the listing won the tie-break over the actual make | Survivor | 1 | Dodge Ram 1500 - 94-01, gold=DODGE\|RAM, predicted=RAM\|1500 |
+| 5 | A number from the year range matched a canonical model that is itself a number | Survivor | 1 | Mitsubishi FTO - DE2A 1994-2000, gold=MITSUBISHI\|FTO, predicted=MITSUBISHI\|2000 |
+| 6 | Listing names the trim/variant; gold is the parent model line — the parent's name is absent from the listing | Survivor | 1 | Ford XR6 - FG-FGX 2008-2016, gold=FORD\|FALCON, predicted=NONE |
+Uncategorised / other: 0
+
+Balances: 8 survivors (Rep 1's 9 minus the CX7 fix) + 3 new breaks = 11.
+
+Two corrections against the first pass at this table. Category 2 was recorded as
+3; Ford XR6 was sitting in it and is a different mechanism — the JDM/export pair
+is two names for the same model, whereas XR6 is a trim name standing in for the
+model line. And the Mitsubishi FTO row was missed entirely; it is the second of
+Rep 1's short-model mismatches, the one the CX7 fix did not touch.
+
+**Categories 3 and 6 are the same inconsistency pointing in opposite
+directions.** In 3, gold takes the variant (BMW|318) and the prediction takes
+the parent (BMW|3 SERIES). In 6, gold takes the parent (FORD|FALCON) and the
+listing only offers the variant (XR6). Four of the eleven errors turn on which
+level of the model hierarchy counts as correct, and that is not settled by the
+matcher — it is a question about what the gold labels mean. Nothing downstream
+can score better than that decision is consistent.
 
 **Explanation**
-- Why the gap: Listing titles with incorrect strings fail to matchup with the gold set
-- What this says about my model of the system: An exact string match can't be used since there is so much variation in public listing strings
-- What I'd predict next, and why: More information needs to be considered from the NZTA database and the listing to find a match
+- Why the gap: Predicted 10 breaks, got 3. I expected a threshold of 95 to let
+  loose matches through. It let none through after punctuation is stripped so
+  every match scores exactly 100.
+- What this says about my model of the system: The gain came from normalisation,
+  not from fuzzy matching, and the threshold is inert. Of the 11 remaining
+  errors only 2 are cases where the listing and the register share no string.
+- What I'd predict next, and why: An alias table mapping JDM names to export
+  names, plus chassis codes. Predicted score: 93/100.
+
+*Explanations for this entry were drafted in review with the coach and edited by
+me. The predictions, the measurements and the error reading are my own.*
 
 ---
 

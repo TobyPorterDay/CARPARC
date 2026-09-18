@@ -1,0 +1,8 @@
+# Pinned to the versions the Rep 1 and Rep 2 scores were measured with, so a
+# fresh checkout reproduces the numbers in LEARNING_LOG.md.
+#   python3 -m pip install -r requirements.txt
+
+duckdb==1.5.5        # harness.py: gold loading and scoring in SQL
+rapidfuzz==3.14.6    # vehicle_classify.py: Rep 2 fuzzy_match
+requests==2.34.2     # scrape_partsworld.py, scrape_trademe.py
+pytest==9.1.1        # test_harness.py
