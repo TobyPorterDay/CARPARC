@@ -17,7 +17,7 @@ import duckdb
 
 import harness
 
-REP = "exact_match"
+REP = "rep2_fuzzy"
 
 
 def get_counts(rep=REP):

@@ -31,9 +31,46 @@ def test_reps_registry_accessible():
     assert "stub" in harness.REPS
     assert "classify" in harness.REPS
     assert "exact_match" in harness.REPS
+    assert "rep2_fuzzy" in harness.REPS
     assert harness.REPS["stub"]("anything") is None
     assert harness.REPS["classify"] is clf.classify
     assert harness.REPS["exact_match"] is vclf.match
+    assert harness.REPS["rep2_fuzzy"] is vclf.fuzzy_match
+
+
+def test_rep2_fuzzy_is_called_through_registry():
+    # The other registry test only checks the binding. This one calls the
+    # function the harness would call and asserts a real label comes back,
+    # so a rep that is registered but never actually invoked — or invoked
+    # and returning something the harness can't score — fails here.
+    classify_fn = harness.REPS["rep2_fuzzy"]
+    label = classify_fn("Mazda CX7 - ER 2006-2012")
+
+    assert label == "MAZDA|CX-7", f"expected MAZDA|CX-7 from the repaired rep, got {label!r}"
+    assert classify_fn("Nothing matches here at all") == "NONE"
+
+
+def test_score_reps_invokes_rep2_fuzzy_per_listing():
+    # score_reps() must call the rep once for every gold listing, not skip it
+    # or reuse a cached prediction. Counting calls proves the function ran.
+    calls = []
+
+    def counting_fuzzy(title):
+        calls.append(title)
+        return vclf.fuzzy_match(title)
+
+    con = duckdb.connect()
+    listings = harness.load_gold(con)
+
+    original = harness.REPS["rep2_fuzzy"]
+    harness.REPS["rep2_fuzzy"] = counting_fuzzy
+    try:
+        harness.score_reps(con, listings)
+    finally:
+        harness.REPS["rep2_fuzzy"] = original
+
+    assert len(calls) == 40, f"expected 40 calls, one per gold listing, got {len(calls)}"
+    assert calls == [listing for (listing,) in listings], "calls must follow the gold listings"
 
 
 def test_loop_over_reps():
@@ -42,7 +79,8 @@ def test_loop_over_reps():
     # stub always returns None, so it scores 0. exact_match is a vehicle
     # (Make|Model) rep scored here against the part_type gold set, so none of
     # its predictions can ever equal a part_type label — it also scores 0.
-    expected = {"stub": 0, "classify": 3, "exact_match": 0}
+    # rep2_fuzzy is the same kind of vehicle rep, so it scores 0 for the same reason.
+    expected = {"stub": 0, "classify": 3, "exact_match": 0, "rep2_fuzzy": 0}
 
     con = duckdb.connect()
     listings = harness.load_gold(con)
@@ -149,6 +187,8 @@ def test_classify_has_no_none_row():
 if __name__ == "__main__":
     test_gold_labels_score_one()
     test_reps_registry_accessible()
+    test_rep2_fuzzy_is_called_through_registry()
+    test_score_reps_invokes_rep2_fuzzy_per_listing()
     test_loop_over_reps()
     test_sample_errors_deterministic()
     test_sample_errors_shrinks_with_fewer_errors()

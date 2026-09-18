@@ -8,7 +8,9 @@ the JDM name, the export name and the chassis code all disagree with each other.
 Returning `None` is a first-class outcome.
 
 **Status: pre-v0.1.0.** Instrument built, corpus collected, gold set drawn and
-labelled, 100 dev / 100 held-out. No resolution logic yet — that is Rep 1.
+labelled, 100 dev / 100 held-out. Week 2 in progress: Reps 1 and 2 measured,
+Reps 3–5 outstanding. TODO: numbers for alias/chassis, LLM extraction and the
+hybrid rep.
 
 ## The two functions
 
@@ -76,8 +78,14 @@ python3 label_vehicles.py         # labels the dev set
 |---|---|---|---|
 | — | constant-label floor (part_type) | 7/40 (0.17) | 40 |
 | 1 | contains model anywhere | 91/100 (0.91) | 100 |
+| 2 | fuzzy match, make and model scored separately, threshold 95 | 89/100 (0.89) | 100 |
 
 Reported as point estimates until small-n results make intervals necessary.
+
+Rep 2's threshold is inert on this dev set: 100, 95 and 80 produce identical
+predictions, because every decision is made at a similarity of exactly 100 once
+punctuation is normalised away. The gain over Rep 1 came from normalisation, not
+from fuzzy matching.
 
 ## Limitations
 
@@ -88,6 +96,11 @@ Reported as point estimates until small-n results make intervals necessary.
   noise: pre-1990 vehicles are 6.5% of the fleet but 26% of distinct pairs,
   and 44,338 pairs appear nowhere after 1989. Re-check in Week 4 whether the
   cut deletes classics the corpus actually contains.
+- The register carries punctuated and unpunctuated spellings of the same model
+  as separate canonical rows (`CR-V` and `CRV`, `MX-5` and `MX5`). Once
+  punctuation is normalised the two are indistinguishable, so which row wins is
+  decided by the tie-break, not by the match. TODO: quantify how many of the
+  12,728 pairs collide this way.
 - Partsworld's catalogue is semi-structured (`Make Model - Variant`), so it is
   a cleaner noisy side than free-text marketplace listings would be.
 

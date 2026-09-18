@@ -331,6 +331,130 @@ Uncategorised / other: 0
 
 ---
 
+### Rep 2 — Fuzzy match on model, threshold 95
+
+**Date:** 17/09
+
+**Initial setup**
+- Data:            data/gold_vehicles_dev.csv, 100 rows, same frozen dev set as Rep 1 (3dce7a7)
+- System:          rep2_fuzzy — rapidfuzz best match of the model string against
+                   data/mvr_canonical_vehicles.csv (12,728 pairs, fleet_count >= 10),
+                   returning "NONE" when the best score is below the threshold.
+                   Registered as a new entry in REPS; Rep 1's function is unchanged.
+- Metric:          accuracy, correct / n, computed in SQL by harness.score()
+- Baseline to beat: Rep 1, 91/100 (0.91)
+
+**The one specific change**
+- Replace substring containment with rapidfuzz similarity, single threshold of 95.
+
+**Prediction** — written before running
+- Predicted score: 84/100 (0.84)
+- Predicted fixes: 3 of Rep 1's 9 errors
+- Predicted new breaks: 10 of Rep 1's 91 correct rows
+- Reasoning (one or two lines): 91 - 10 + 3 = 84. Fuzzy addresses the short-model
+  mismatches (Rep 1 category 2) but is expected to break more currently-correct
+  rows than it fixes at this threshold.
+- Written at: 17/09 06:37 NZST
+
+**Result** — **VOID**
+- **VOID:** this run scored `token_set_ratio` against the whole title — not the
+  system this entry describes. Superseded by Iteration 2a. Not carried to the
+  calibration table; the prediction it consumed is graded there against the
+  repaired rep instead.
+- Observed score: 91/100 (0.91)
+- Observed fixes (Rep 1 errors now correct): 0
+- Observed new breaks (Rep 1 correct rows now wrong): 0
+- Signed error (observed - predicted): +7pp
+- Measured at: 17/09 06:51 NZST
+- Note: the same 9 rows are wrong as in Rep 1. Two of them changed their wrong
+  answer (MAZDA|2 -> NONE, FORD|D -> NONE); the other seven are unchanged.
+
+**Error categories** — n/a. This run's predictions were identical to Rep 1's
+on all 100 rows, so its errors are Rep 1's errors. The table for the measured
+system is in Iteration 2a below.
+
+**Explanation** (of the void run)
+- Why the gap: No difference to rep 1
+- What this says about my model of the system: Using the string to identify matches is not the right method
+- What I'd predict next, and why: More information needs to be considered from the NZTA database and the listing to find a match
+
+#### Iteration 2a — same rep, repaired scorer
+
+The first run did not measure what this entry says it measures. It scored
+"MAKE MODEL" against the whole title with token_set_ratio, which compares
+whole strings built from the shared words — so the chassis code and the year
+range sat inside the comparison and dominated it. Every dev row scored
+exactly 100 or below the threshold, nothing in between: a whole-word
+containment check wearing a similarity threshold. "Corrolla" against COROLLA
+scored 78, and CX-7 could never match "CX7" because default_process turns a
+hyphen into a word break. 5,015 of 12,728 canonical models contain a space or
+punctuation.
+
+**The repair** (one change, threshold still 95)
+- Score make and model separately with fuzz.ratio, both must clear 95.
+- Compare against runs of up to 4 adjacent listing words, not the whole title.
+- Delete punctuation instead of turning it into a word break, so CX-7, CX7 and
+  "CX 7" reduce to the same key.
+
+Similarity now actually operates: CX7 -> MAZDA|CX-7, Xtrail -> NISSAN|X-TRAIL,
+CR-V and C-HR resolve. At 95 one typo in a seven-letter model still misses
+(CORROLLA vs COROLLA scores 93.3), so the threshold, not the scorer, is what
+now decides the near misses.
+
+**Prediction** — written before running the repaired rep
+- Predicted score: 84/100 (0.84)
+- Predicted fixes (Rep 1 errors now correct): 3
+- Predicted new breaks (Rep 1 correct rows now wrong): 10
+- Reasoning (one or two lines): carried over unchanged from the Rep 2 prediction
+  above — 91 - 10 + 3 = 84 — and deliberately not revised after seeing the first
+  run's 91/100. The repaired rep is the system that prediction was written for.
+- Written at: 17/09 06:37 NZST (carried over), reused for the repair 18/09 NZST
+
+**Result** (threshold 95, the entry's threshold)
+- Observed score: 89/100 (0.89)
+- Observed fixes: 1 (Mazda CX7 -> MAZDA|CX-7, the punctuation case the repair targeted)
+- Observed new breaks: 3 (Honda CRV -> HONDA|CR-V, Mazda MX5 -> MAZDA|MX-5,
+  Toyota Mr2 -> TOYOTA|MR 2)
+- Signed error (observed - predicted): +5pp
+- Measured at: 18/09 06:55 NZST
+
+**Threshold sweep** (same repaired rep, threshold varied)
+| Threshold | Score | NONE predictions | Rows differing from 95 |
+|---|---|---|---|
+| 100 | 89/100 (0.89) | 4 | none — identical predictions |
+| 95 | 89/100 (0.89) | 4 | — |
+| 80 | 89/100 (0.89) | 3 | 1: Ford XR6, NONE -> OXFORD|200 (still wrong) |
+
+The threshold does not move the score on this dev set. 100 and 95 produce
+byte-identical predictions on all 100 rows, and 80 changes one row from one
+wrong answer to another. Every decision here is made at a score of exactly
+100 after punctuation is stripped; the near-miss band the threshold governs
+is empty, because these titles spell the model correctly.
+
+The three new breaks are the repair's own doing and they are all one
+mechanism: stripping punctuation makes CRV and CR-V identical keys, so both
+canonical rows score 100 and the longest-model tie-break takes the
+punctuated one. Gold uses the unpunctuated form for those three and the
+punctuated form for CX-7, because the register carries both spellings as
+separate rows. The register disagrees with itself, and no threshold can
+settle that — the tie-break decides it.
+
+**Error categories** (sample of 20, all read — split survivors vs new)
+| # | Category | Survivor / New | Count | Example |
+|---|---|---|---|---|
+| 1 | The prediction is correct, but the string doesn't match the gold string | New | 3 | Mazda MX5 - NB 1998-2005, gold=MAZDA|MX5, predicted=MAZDA|MX-5 |
+| 2 | Listing uses the JDM name, the register uses the export name — no substring can match | Survivor | 3 | Toyota Surf - RZN130, gold=TOYOTA|4RUNNER, predicted=NONE |
+| 3 | Prediction is the parent model line; gold is the specific variant | Survivor | 3 | BMW 3 Series E36 - 318i, gold=BMW|318, predicted=BMW|3 SERIES |
+| 4 |  |  |  |  |
+Uncategorised / other:
+
+**Explanation**
+- Why the gap: Listing titles with incorrect strings fail to matchup with the gold set
+- What this says about my model of the system: An exact string match can't be used since there is so much variation in public listing strings
+- What I'd predict next, and why: More information needs to be considered from the NZTA database and the listing to find a match
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
@@ -342,6 +466,7 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 0 | 0 | 32% | 32% | 0 |
 | 1 | S02/T4 | 90% | 7.5% | -82.5pp |
 | 1 | 1 | 93% | 91% | -2pp |
+| 2 | 2 | 84% | 89% | +5pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
@@ -378,4 +503,11 @@ Fill the row at the same time as the entry. Never backfill from memory.
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
-|  |  |  |  |  |
+
+**Note on the Rep 2 row.** The 84% prediction was written on 17/09 before any
+Rep 2 run, then carried over unrevised to the repaired rep on 18/09 — after the
+void run's 91/100 had been seen. It is graded once, against the repaired rep
+(84% -> 89%, +5pp). The void run consumed the same prediction and landed at
+91/100 (+7pp); it gets no row, because one prediction cannot be counted twice.
+This row is weaker calibration evidence than Rep 1's: the prediction was not
+written in ignorance of a related result.

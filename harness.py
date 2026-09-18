@@ -31,6 +31,7 @@ REPS = {
     "stub": lambda title: None,
     "classify": clf.classify,
     "exact_match": vclf.match,
+    "rep2_fuzzy": vclf.fuzzy_match,
 }
 
 

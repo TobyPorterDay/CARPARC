@@ -12,7 +12,7 @@ import duckdb
 import harness
 
 N = 20
-REP = "exact_match"
+REP = "rep2_fuzzy"
 
 
 def get_samples(n=N):
