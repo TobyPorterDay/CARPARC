@@ -484,6 +484,92 @@ me. The predictions, the measurements and the error reading are my own.*
 
 ---
 
+### Rep 2 rerun — dev gold relabelled for model and variant
+
+Not a rep: nothing in the system changed and no prediction was written before
+the run, so there is no calibration row. Recorded because the dev set changed
+under Rep 2, so its 89/100 no longer describes the current gold.
+
+**Date:** 19/09
+
+**What changed** (gold only)
+- vocab.md gained a model/variant rule: the model is the parent line (Falcon,
+  3 Series), the variant is the sub-model (XR6, 330i), and each is labelled
+  only if the listing includes it.
+- data/gold_vehicles_dev.csv split `Label` into `Make`, `Model`, `Variant`.
+  Same 100 listings; the NONE row stays NONE.
+- Five rows relabelled under the rule:
+
+| Listing | Old gold | New key | Variant |
+|---|---|---|---|
+| BMW 3 Series E46 - 318i | BMW\|318 | BMW\|3 Series | 318i |
+| BMW 3 Series E36 - 318i | BMW\|318 | BMW\|3 Series | 318i |
+| BMW 5 Series E39 - 520D | BMW\|520D | BMW\|5 Series | 520D |
+| Ford XR6 - FG-FGX 2008-2016 | FORD\|FALCON | FORD\|FALCON | XR6 |
+| Dodge Ram 1500 - 94-01 | DODGE\|RAM | DODGE\|RAM | 1500 |
+
+**Initial setup**
+- Data:            data/gold_vehicles_dev.csv, 100 rows, relabelled as above (uncommitted at 2afb9ca)
+- System:          rep2_fuzzy, threshold 95, unchanged since Iteration 2a
+- Metric:          key accuracy on MAKE|MODEL, correct / n, harness.score(); variant
+                   accuracy on the 5 rows with a gold variant, harness.score_variant()
+                   — a variant counts only when the key is also right
+
+**Result**
+- Key score: 92/100 (0.92), up from 89/100
+- Variant score: 0/5 (0.00) — rep2_fuzzy returns MAKE|MODEL only
+- Measured at: 19/09 08:53 NZST
+
+**Reconciliation:** 89 + 3 = 92. The three BMW rows (Iteration 2a category 3)
+were wrong only because gold took the variant; the rep already predicted the
+parent line, and gold now does too. No row that was correct went wrong.
+
+**Remaining errors** (8, all read — every one a survivor from Iteration 2a)
+| Listing | Gold | Predicted | 2a category |
+|---|---|---|---|
+| Honda CRV - RE4 2007-2011 | HONDA\|CRV | HONDA\|CR-V | 1 |
+| Mazda MX5 - NB 1998-2005 | MAZDA\|MX5 | MAZDA\|MX-5 | 1 |
+| Toyota Mr2 - SW20 1990-1994 | TOYOTA\|MR2 | TOYOTA\|MR 2 | 1 |
+| Toyota Surf - RZN130 | TOYOTA\|4RUNNER | NONE | 2 |
+| Mitsubishi Emmeraude - E52A 1992-1997 | MITSUBISHI\|GALANT | NONE | 2 |
+| Dodge Ram 1500 - 94-01 | DODGE\|RAM | RAM\|1500 | 4 |
+| Mitsubishi FTO - DE2A 1994-2000 | MITSUBISHI\|FTO | MITSUBISHI\|2000 | 5 |
+| Ford XR6 - FG-FGX 2008-2016 | FORD\|FALCON | NONE | 6 |
+
+**VOID: the 93/100 prediction for the alias-table rep** (Rep 2 Explanation
+above). It was written against the old gold, where the three BMW rows were
+errors. The baseline it was predicted from is gone, so it is not graded. The
+next rep needs a fresh prediction against 92/100.
+
+---
+
+### Rep 3a — Alias table
+
+**Date:** 19/09
+
+**Initial setup**
+- Data:            data/gold_vehicles_dev.csv, 100 rows, Make/Model/Variant, relabelled
+                   under the vocab.md model/variant rule (see Rep 2 rerun)
+- System:          alias table data/alias_vehicles.csv — top 40 MVR vehicles, 192
+                   rows of chassis codes, JDM name and export name, with alternate
+                   MVR names merged. Covers 39.63% of the MVR (2,340,272 of 5,905,376).
+- Metric:          key accuracy on MAKE|MODEL, correct / n, harness.score(); variant
+                   accuracy on the 5 rows with a gold variant, harness.score_variant()
+- Baseline to beat: Rep 2 on the relabelled gold, 92/100 (0.92)
+
+**The one specific change**
+- Use the merged JDM/import model name for both instances: a listing that names
+  either the JDM name or the export name resolves to the same merged model in
+  data/alias_vehicles.csv. Chassis codes are not used in this rep.
+
+**Prediction** — written before running
+- Predicted score: 97/100 (0.97)
+- Reasoning (one or two lines): The harness will recognise both names as one
+  model, eliminating the errors caused by a non-matched model.
+- Written at: 19/09 09:57 NZST
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).

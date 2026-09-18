@@ -207,6 +207,14 @@ parts.
 
 ---
 
+## Model and variant
+
+- **Model** is the parent line, e.g. Falcon, 3 Series.
+- **Variant** is the sub-model, e.g. XR6, 330i.
+- Only add the variant if it is included in the listing.
+- The model can be added even when the listing names only the variant, e.g.
+  "Ford XR6" → model Falcon, variant XR6.
+
 ## Known unresolved
 
 Not present in the 40-record gold set. Expected to appear at 3,000. Do not
@@ -238,6 +246,7 @@ the vocabulary itself; five are cases the vocabulary does not cleanly settle.
 | Toyota KUN25 Rear Bumper Bar Number Plate Garnish | `Exterior trim` | Same shape as above — the title names a panel and the part is trim. The dominant-part rule carries it, not precedence. |
 | Valeo Window Regulator 851259 Fits Bmw X1 | `Moveable panels` | Electronics sits above Moveable panels at rung 6. Its exclusion ("moves a panel") only reaches this because door glass is defined as part of a moveable panel. Strained wording, right answer. |
 | Mazda BT50 Alloys and Mags | `Drivetrain` | Correct per Drivetrain's include list. Noted because it is counterintuitive for search — nobody looks for wheels under drivetrain. |
+| Subaru Outback / Subaru Legacy | `SUBARU\|LEGACY` or `SUBARU\|OUTBACK` — unresolved | Subaru Outback and Legacy share the same chassis codes. The Outback is built on the Legacy wagon body, and in data/alias_vehicles.csv BPE, BR9, BRM and BS9 appear under both. A listing that gives only a chassis code cannot be resolved to one model. |
 
 ## Revisions
 
