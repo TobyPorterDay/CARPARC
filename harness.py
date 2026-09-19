@@ -21,13 +21,6 @@ score is taken on is still MAKE|MODEL. A vehicle rep may return
 compared, and scored separately by score_variant() on the rows where gold
 has a variant (vocab.md: a variant is only labelled when the listing
 includes one).
-
-Keys are compared through the alias table (ALIAS_PATH). Where the register
-holds one vehicle under several names — AXELA;MAZDA3, CRV;CR-V — any of
-those names matches any other, so a prediction of MAZDA|MAZDA3 is correct
-against gold MAZDA|AXELA. Both sides are reduced to a canonical key (the
-merged row's first name) before comparing; a key not in the alias table
-is its own canonical key.
 """
 
 import os
@@ -43,52 +36,17 @@ import vehicle_classify as vclf
 #   CARPARC_GOLD=data/gold_vehicles_dev.csv python3 harness.py
 LABELS_PATH = os.environ.get("CARPARC_GOLD", "Labels.csv")
 
-# Vehicles held in the register under several names, merged in one row as
-# "NAME;NAME". Every name in a row counts as the same model when scoring.
-ALIAS_PATH = "data/alias_vehicles.csv"
-
 REPS = {
     "stub": lambda title: None,
     "classify": clf.classify,
     "exact_match": vclf.match,
     "rep2_fuzzy": vclf.fuzzy_match,
+    "rep3_alias": vclf.alias_match,
 }
-
-
-def load_aliases(con, path=ALIAS_PATH):
-    """Build alias_names: (NameKey, CanonKey), one row per merged register name.
-
-    NameKey is "MAKE|NAME" for each name in a merged mvr_model; CanonKey is
-    "MAKE|FIRST_NAME" for its row. Both upper-cased and trimmed.
-    """
-    con.execute(
-        f"""
-        CREATE OR REPLACE TABLE alias_names AS
-        SELECT DISTINCT
-            UPPER(TRIM(make)) || '|' || UPPER(TRIM(name)) AS NameKey,
-            UPPER(TRIM(make)) || '|' || UPPER(TRIM(split_part(mvr_model, ';', 1))) AS CanonKey
-        FROM (
-            SELECT make, mvr_model, UNNEST(string_split(mvr_model, ';')) AS name
-            FROM read_csv('{path}', all_varchar=true)
-        )
-        """
-    )
-    clashes = con.execute(
-        "SELECT NameKey FROM alias_names GROUP BY NameKey HAVING COUNT(*) > 1"
-    ).fetchall()
-    if clashes:
-        raise ValueError(f"{path}: names merged into more than one vehicle: {clashes}")
-
-
-def _canon(expr):
-    """SQL for expr's canonical key: its alias row's CanonKey, else itself upper-cased."""
-    key = f"UPPER(TRIM({expr}))"
-    return f"COALESCE((SELECT CanonKey FROM alias_names WHERE NameKey = {key}), {key})"
 
 
 def load_gold(con, path=None):
     path = path or LABELS_PATH
-    load_aliases(con)
     con.execute(
         f"CREATE OR REPLACE TABLE raw_gold AS SELECT * FROM read_csv_auto('{path}', all_varchar=true)"
     )
@@ -128,7 +86,6 @@ def load_gold(con, path=None):
             f"{path} has duplicate titles (case/whitespace-insensitive): "
             f"{n_rows} rows but only {n_distinct} distinct titles"
         )
-    con.execute(f"CREATE OR REPLACE TABLE gold AS SELECT *, {_canon('Label')} AS LabelCanon FROM gold")
     return con.execute("SELECT Listing FROM gold").fetchall()
 
 
@@ -138,8 +95,7 @@ def load_predictions(con, predictions):
     PredictedKey is Predicted with anything after a second "|" removed, so
     "MAKE|MODEL|VARIANT" is keyed as "MAKE|MODEL". A part_type label or a
     plain "MAKE|MODEL" passes through unchanged. PredictedVariant is the
-    third segment, or NULL when there isn't one. KeyCanon is PredictedKey
-    reduced through the alias table, for comparing against gold.LabelCanon.
+    third segment, or NULL when there isn't one.
     """
     con.execute("CREATE OR REPLACE TABLE raw_predictions (Listing VARCHAR, Predicted VARCHAR)")
     con.executemany("INSERT INTO raw_predictions VALUES (?, ?)", predictions)
@@ -154,10 +110,6 @@ def load_predictions(con, predictions):
         FROM raw_predictions
         """
     )
-    con.execute(
-        f"CREATE OR REPLACE TABLE predictions AS "
-        f"SELECT *, {_canon('PredictedKey')} AS KeyCanon FROM predictions"
-    )
     return con.execute("SELECT COUNT(*) FROM predictions").fetchone()[0]
 
 
@@ -165,8 +117,7 @@ def score(con, predictions):
     """Score (Listing, Predicted) pairs against gold. Returns (correct, n, accuracy).
 
     A predicted label counts as wrong if it isn't one of the labels
-    actually present in gold — derived from gold.Label, not vocab.md. Names
-    merged in the alias table count as the same label.
+    actually present in gold — derived from gold.Label, not vocab.md.
     Accuracy (correct / n) is computed in SQL, not Python. Only the key is
     compared — a predicted variant neither helps nor hurts this score.
     """
@@ -179,7 +130,7 @@ def score(con, predictions):
                 CASE
                     WHEN p.PredictedKey IS NULL THEN 0
                     WHEN v.Label IS NULL THEN 0
-                    WHEN p.KeyCanon = g.LabelCanon THEN 1
+                    WHEN LOWER(TRIM(p.PredictedKey)) = LOWER(TRIM(g.Label)) THEN 1
                     ELSE 0
                 END
             ) AS INTEGER) AS correct,
@@ -188,15 +139,15 @@ def score(con, predictions):
                 CASE
                     WHEN p.PredictedKey IS NULL THEN 0
                     WHEN v.Label IS NULL THEN 0
-                    WHEN p.KeyCanon = g.LabelCanon THEN 1
+                    WHEN LOWER(TRIM(p.PredictedKey)) = LOWER(TRIM(g.Label)) THEN 1
                     ELSE 0
                 END
             ) AS DOUBLE) / COUNT(*) AS accuracy
         FROM predictions p
         JOIN gold g
             ON LOWER(TRIM(p.Listing)) = LOWER(TRIM(g.Listing))
-        LEFT JOIN (SELECT DISTINCT LabelCanon AS Label FROM gold) v
-            ON v.Label = p.KeyCanon
+        LEFT JOIN (SELECT DISTINCT Label FROM gold) v
+            ON LOWER(TRIM(v.Label)) = LOWER(TRIM(p.PredictedKey))
         """
     ).fetchone()
 
@@ -225,7 +176,7 @@ def score_variant(con, predictions):
         SELECT
             CAST(COALESCE(SUM(
                 CASE
-                    WHEN p.KeyCanon = g.LabelCanon
+                    WHEN LOWER(TRIM(p.PredictedKey)) = LOWER(TRIM(g.Label))
                      AND LOWER(p.PredictedVariant) = LOWER(g.Variant) THEN 1
                     ELSE 0
                 END
@@ -259,11 +210,11 @@ def sample_errors(con, predictions, n=20, seed=0):
         FROM predictions p
         JOIN gold g
             ON LOWER(TRIM(p.Listing)) = LOWER(TRIM(g.Listing))
-        LEFT JOIN (SELECT DISTINCT LabelCanon AS Label FROM gold) v
-            ON v.Label = p.KeyCanon
+        LEFT JOIN (SELECT DISTINCT Label FROM gold) v
+            ON LOWER(TRIM(v.Label)) = LOWER(TRIM(p.PredictedKey))
         WHERE p.PredictedKey IS NULL
            OR v.Label IS NULL
-           OR p.KeyCanon != g.LabelCanon
+           OR LOWER(TRIM(p.PredictedKey)) != LOWER(TRIM(g.Label))
         ORDER BY p.Listing
         """
     ).fetchall()
@@ -276,8 +227,7 @@ def label_counts(con, predictions):
 
     One row per distinct pairing, most common first — the diagonal (Gold ==
     Predicted) is what score() counts as correct, everything else is a
-    confusion. Alias matches (gold MAZDA|AXELA, predicted MAZDA|MAZDA3) are
-    correct in score() but sit off the diagonal here. Predicted comes back as the rep actually returned it,
+    confusion. Predicted comes back as the rep actually returned it,
     including labels outside gold's vocabulary and None, since which wrong
     label a rep reaches for is the point of the table.
     """

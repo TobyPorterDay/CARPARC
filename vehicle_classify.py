@@ -22,6 +22,19 @@ words (up to WINDOW_TOKENS long) and each run is scored separately, so a
 chassis code and a year range can't drag a real match down. Punctuation is
 deleted rather than turned into a word break, so CX-7, CX7 and "CX 7" all
 reduce to the same key and compare equal.
+
+Rep 3a: alias_match() looks the listing up in ALIAS_PATH before falling
+back to Rep 2. Every name the table gives a vehicle (each merged register
+name, the JDM name and the export name) points at that vehicle's merged
+row, so "Mitsubishi Airtrek" and "Mitsubishi Outlander" both resolve to
+MITSUBISHI|OUTLANDER. Names are compared as _key()s against the listing's
+word runs, exactly, with the make required too; the longest name found
+wins. Chassis codes are not used.
+
+Each vehicle has one fixed name, the first name in its mvr_model, and
+alias_match() only ever returns that name for it. When the lookup misses
+and Rep 2 answers with another of the vehicle's names (MAZDA|MAZDA3), it
+is replaced with the fixed one (MAZDA|AXELA).
 """
 
 import csv
@@ -30,6 +43,7 @@ import re
 from rapidfuzz import fuzz, process
 
 CANONICAL_PATH = "data/mvr_canonical_vehicles.csv"
+ALIAS_PATH = "data/alias_vehicles.csv"
 FUZZY_THRESHOLD = 95
 # Longest run of adjacent listing words compared against one make or model.
 # The longest canonical model is 4 words ("3 SERIES GRAN TURISMO").
@@ -37,6 +51,7 @@ WINDOW_TOKENS = 4
 
 _vehicles = None
 _fuzzy_keys = None
+_aliases = None
 
 
 def load_canonical(path):
@@ -145,6 +160,82 @@ def fuzzy_match(title, threshold=FUZZY_THRESHOLD):
     candidates.sort(key=lambda c: (-c[0], -len(c[1][1]), -c[1][2], c[1][0], c[1][1]))
     make, model, _ = candidates[0][1]
     return f"{make}|{model}"
+
+
+def _alias_names(field):
+    """Split a jdm_name/export_name cell into names.
+
+    Cells hold several names separated by " / " and carry notes in brackets,
+    e.g. "RAV4 / Vanguard (long body)" -> ["RAV4", "Vanguard"].
+    """
+    names = []
+    for part in field.split("/"):
+        name = re.sub(r"\([^)]*\)", "", part).strip()
+        if name:
+            names.append(name)
+    return names
+
+
+def load_aliases(path):
+    """Return {make_key: {name_key: "MAKE|MODEL"}} from the alias table.
+
+    MODEL is the first name of the merged mvr_model. A name that points at
+    two different vehicles under one make is ambiguous and left out.
+    """
+    aliases = {}
+    ambiguous = set()
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            make = row["make"].strip().upper()
+            merged = row["mvr_model"].split(";")
+            label = f"{make}|{merged[0].strip().upper()}"
+            names = merged + _alias_names(row["jdm_name"]) + _alias_names(row["export_name"])
+            by_name = aliases.setdefault(_key(make), {})
+            for name in names:
+                name_key = _key(name)
+                if not name_key:
+                    continue
+                if by_name.get(name_key, label) != label:
+                    ambiguous.add((_key(make), name_key))
+                by_name[name_key] = label
+    for make_key, name_key in ambiguous:
+        del aliases[make_key][name_key]
+    return aliases
+
+
+def _get_aliases():
+    global _aliases
+    if _aliases is None:
+        _aliases = load_aliases(ALIAS_PATH)
+    return _aliases
+
+
+def alias_lookup(title):
+    """Return "MAKE|MODEL" for the longest alias name in title, else None."""
+    windows = set(_windows(title))
+    best = None
+    for make_key, by_name in _get_aliases().items():
+        if make_key not in windows:
+            continue
+        for name_key, label in by_name.items():
+            if name_key in windows and (best is None or len(name_key) > len(best[0])):
+                best = (name_key, label)
+    return best[1] if best else None
+
+
+def fixed_label(label):
+    """Return label under its vehicle's fixed name, or unchanged if not in the table."""
+    make, _, model = label.partition("|")
+    return _get_aliases().get(_key(make), {}).get(_key(model), label)
+
+
+def alias_match(title, threshold=FUZZY_THRESHOLD):
+    """Rep 3a: the alias table's vehicle if the listing names one, else Rep 2.
+
+    Either way a vehicle in the alias table comes back under its fixed name.
+    """
+    return alias_lookup(title) or fixed_label(fuzzy_match(title, threshold))
+
 
 def main():
     import sys

@@ -6,7 +6,11 @@
 * label_counts()'s (gold, predicted) pairs agree with score()'s totals
 * Split vehicle gold (Make, Model, Variant) is scored on MAKE|MODEL, with
   variants scored separately on the rows that have one
+* Keys are matched as plain strings, and where the register merges names
+  the dev gold uses the fixed one
 """
+
+import csv
 
 import duckdb
 
@@ -34,10 +38,12 @@ def test_reps_registry_accessible():
     assert "classify" in harness.REPS
     assert "exact_match" in harness.REPS
     assert "rep2_fuzzy" in harness.REPS
+    assert "rep3_alias" in harness.REPS
     assert harness.REPS["stub"]("anything") is None
     assert harness.REPS["classify"] is clf.classify
     assert harness.REPS["exact_match"] is vclf.match
     assert harness.REPS["rep2_fuzzy"] is vclf.fuzzy_match
+    assert harness.REPS["rep3_alias"] is vclf.alias_match
 
 
 def test_rep2_fuzzy_is_called_through_registry():
@@ -55,6 +61,43 @@ def test_rep2_fuzzy_is_called_through_registry():
 
     assert label == "TOYOTA|C-HR", f"expected TOYOTA|C-HR from the repaired rep, got {label!r}"
     assert classify_fn("Nothing matches here at all") == "NONE"
+
+
+def test_rep3_alias_resolves_jdm_and_export_names():
+    # Titles are absent from both gold sets. Airtrek is the JDM name and
+    # Outlander the export name of one merged row, so both resolve to it;
+    # Vitz/Yaris likewise. The bracketed note in "Tiida / Tiida Latio
+    # (sedan)" is stripped, so Tiida Latio is a name.
+    classify_fn = harness.REPS["rep3_alias"]
+    assert classify_fn("Mitsubishi Airtrek - CU2W") == "MITSUBISHI|OUTLANDER"
+    assert classify_fn("Mitsubishi Outlander - CW5W") == "MITSUBISHI|OUTLANDER"
+    assert classify_fn("Toyota Vitz - NCP10") == "TOYOTA|YARIS"
+    assert classify_fn("Nissan Tiida Latio - SC11") == "NISSAN|TIIDA"
+    # The longest name wins: "Legacy Outback" is Outback's, not Legacy's.
+    assert classify_fn("Subaru Legacy Outback - BH9") == "SUBARU|OUTBACK"
+    # The make must be in the listing too.
+    assert vclf.alias_lookup("Airtrek - CU2W") is None
+
+
+def test_rep3_alias_falls_back_to_rep2():
+    # MX-5 is not in the alias table, so the answer is Rep 2's.
+    classify_fn = harness.REPS["rep3_alias"]
+    assert vclf.alias_lookup("Mazda MX5 - NB") is None
+    assert classify_fn("Mazda MX5 - NB") == vclf.fuzzy_match("Mazda MX5 - NB")
+    assert classify_fn("Nothing matches here at all") == "NONE"
+
+
+def test_rep3_alias_returns_one_fixed_name_per_vehicle():
+    # Every name of a vehicle comes back as the same label, whether the
+    # alias lookup or the Rep 2 fallback found it.
+    classify_fn = harness.REPS["rep3_alias"]
+    assert classify_fn("Mazda Mazda3 - BK") == classify_fn("Mazda Axela - BK") == "MAZDA|AXELA"
+    assert classify_fn("Honda CR-V - RD1") == classify_fn("Honda CRV - RD1") == "HONDA|CRV"
+    # Rep 2's own register names are mapped too.
+    assert vclf.fixed_label("MAZDA|MAZDA3") == "MAZDA|AXELA"
+    assert vclf.fixed_label("NISSAN|DATSUN 4WD") == "NISSAN|NAVARA"
+    assert vclf.fixed_label("MAZDA|MX-5") == "MAZDA|MX-5"
+    assert vclf.fixed_label("NONE") == "NONE"
 
 
 def test_score_reps_invokes_rep2_fuzzy_per_listing():
@@ -86,8 +129,9 @@ def test_loop_over_reps():
     # stub always returns None, so it scores 0. exact_match is a vehicle
     # (Make|Model) rep scored here against the part_type gold set, so none of
     # its predictions can ever equal a part_type label — it also scores 0.
-    # rep2_fuzzy is the same kind of vehicle rep, so it scores 0 for the same reason.
-    expected = {"stub": 0, "classify": 3, "exact_match": 0, "rep2_fuzzy": 0}
+    # rep2_fuzzy and rep3_alias are the same kind of vehicle rep, so they
+    # score 0 for the same reason.
+    expected = {"stub": 0, "classify": 3, "exact_match": 0, "rep2_fuzzy": 0, "rep3_alias": 0}
 
     con = duckdb.connect()
     listings = harness.load_gold(con)
@@ -275,33 +319,44 @@ def test_variant_is_exact_but_case_insensitive():
     assert variant_score(lambda v: v[0] + "-" + v[1:]) == (0, 5)
 
 
-def test_alias_names_score_as_one_model():
-    # Any name merged in the alias table matches any other name in its row.
+def test_merged_names_are_not_matched_by_the_harness():
+    # The harness compares plain MAKE|MODEL strings: another name of the
+    # same vehicle is a miss. Reps are responsible for returning the
+    # vehicle's fixed name (vehicle_classify.fixed_label).
+    con = duckdb.connect()
+    _vehicle_gold(con)
+
+    axela = "Mazda Axela - BL MPS"
+    assert harness.score(con, [(axela, "MAZDA|AXELA")])[:2] == (1, 1)
+    assert harness.score(con, [(axela, "mazda|axela")])[:2] == (1, 1)
+    assert harness.score(con, [(axela, "MAZDA|MAZDA3")])[:2] == (0, 1)
+    crv = "Honda CRV - RE4 2007-2011"
+    assert harness.score(con, [(crv, "HONDA|CR-V")])[:2] == (0, 1)
+
+
+def test_dev_gold_uses_fixed_names():
+    # Where the register holds one vehicle under several names (mvr_model
+    # "AXELA;MAZDA3"), dev gold uses the first — the fixed name alias_match()
+    # returns. JDM and export names are not checked: gold labels the vehicle
+    # the listing names, so "Honda Inspire" stays HONDA|INSPIRE even though
+    # the alias table maps a later Inspire to the Accord.
+    fixed = {}
+    with open(vclf.ALIAS_PATH, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            make = row["make"].strip().upper()
+            names = [name.strip().upper() for name in row["mvr_model"].split(";")]
+            for name in names:
+                fixed[f"{make}|{name}"] = f"{make}|{names[0]}"
+
     con = duckdb.connect()
     rows = _vehicle_gold(con)
-    gold = {listing: label for listing, label, _ in rows}
 
-    def swap(label):
-        # Replace a merged name with the last name of its row, e.g.
-        # MAZDA|AXELA -> MAZDA|MAZDA3; leave anything unmerged alone.
-        found = con.execute(
-            "SELECT a2.NameKey FROM alias_names a1 JOIN alias_names a2 USING (CanonKey) "
-            "WHERE a1.NameKey = UPPER(?) AND a2.NameKey != a1.NameKey",
-            [label],
-        ).fetchall()
-        return found[-1][0] if found else label
-
-    swapped = [(listing, swap(label)) for listing, label in gold.items()]
-    n_swapped = sum(1 for (listing, p) in swapped if p != gold[listing].upper())
-    assert n_swapped > 0, "the dev set should have rows with a merged name"
-    assert harness.score(con, swapped)[:2] == (100, 100)
-
-    crv = "Honda CRV - RE4 2007-2011"
-    assert harness.score(con, [(crv, "HONDA|CR-V")])[:2] == (1, 1)
-    # A name from a different row is still wrong: Mazda2 is not an Axela.
-    axela = "Mazda Axela - BL MPS"
-    assert harness.score(con, [(axela, "MAZDA|MAZDA3")])[:2] == (1, 1)
-    assert harness.score(con, [(axela, "MAZDA|MAZDA2")])[:2] == (0, 1)
+    not_fixed = [
+        (listing, label, fixed[label.upper()])
+        for listing, label, _ in rows
+        if fixed.get(label.upper(), label.upper()) != label.upper()
+    ]
+    assert not_fixed == [], f"dev gold keys not under their fixed name: {not_fixed}"
 
 
 def test_single_label_gold_has_no_variants():
@@ -318,6 +373,9 @@ if __name__ == "__main__":
     test_gold_labels_score_one()
     test_reps_registry_accessible()
     test_rep2_fuzzy_is_called_through_registry()
+    test_rep3_alias_resolves_jdm_and_export_names()
+    test_rep3_alias_falls_back_to_rep2()
+    test_rep3_alias_returns_one_fixed_name_per_vehicle()
     test_score_reps_invokes_rep2_fuzzy_per_listing()
     test_loop_over_reps()
     test_sample_errors_deterministic()
@@ -332,6 +390,7 @@ if __name__ == "__main__":
     test_variant_does_not_affect_key_score()
     test_right_variant_under_wrong_model_is_wrong()
     test_variant_is_exact_but_case_insensitive()
-    test_alias_names_score_as_one_model()
+    test_merged_names_are_not_matched_by_the_harness()
+    test_dev_gold_uses_fixed_names()
     test_single_label_gold_has_no_variants()
     print("\nAll assertions passed.")
