@@ -693,18 +693,113 @@ its three BMW rows were resolved by the Rep 2 rerun relabel.
 | 4 | A make named inside the listing won the tie-break over the actual make | Survivor | 1 | Dodge Ram 1500 - 94-01, gold=DODGE\|RAM, predicted=RAM\|1500 |
 | 5 | A number from the year range matched a canonical model that is itself a number | Survivor | 1 | Mitsubishi FTO - DE2A 1994-2000, gold=MITSUBISHI\|FTO, predicted=MITSUBISHI\|2000 |
 | 6 | Listing names the trim/variant; gold is the parent model line — the parent's name is absent from the listing | Survivor | 1 | Ford XR6 - FG-FGX 2008-2016, gold=FORD\|FALCON, predicted=NONE |
-| 7 | The export model from the wrong year is predicted instead of the what the listing title and the gold set state | New | 2 | Honda Inspire - CB-CC 1989-1995, gold: HONDA|INSPIRE, predicted:HONDA|ACCORD |
+| 7 | The JDM model from the wrong year is predicted instead of the what the listing title and the gold set state | New | 2 | Honda Inspire - CB-CC 1989-1995, gold: HONDA|INSPIRE, predicted:HONDA|ACCORD |
 Uncategorised / other:
 
 Balances: 7 survivors (Rep 2's 8 minus the CRV fix, category 1) + 2 new = 9.
 
 **Same run, other reps:** exact_match (Rep 1) scored 94/100 (0.94) on this
-gold, against 91/100 when Rep 1 was logged on 11/09. Not investigated here.
+gold, against 91/100 when Rep 1 was logged on 11/09.
+
+Why Rep 1 moved: the gold changed, Rep 1 did not. Rerun on the pre-relabel
+gold (2afb9ca) it still scores 91/100. The Rep 2 rerun relabel moved three
+BMW rows to the parent line, which Rep 1 already predicted, so 91 + 3 = 94 —
+the same +3 that took Rep 2 from 89 to 92. No row broke.
+
+| Listing | Old gold | New gold | Rep 1 predicted |
+|---|---|---|---|
+| BMW 3 Series E36 - 318i | BMW\|318 | BMW\|3 SERIES | BMW\|3 SERIES |
+| BMW 3 Series E46 - 318i | BMW\|318 | BMW\|3 SERIES | BMW\|3 SERIES |
+| BMW 5 Series E39 - 520D | BMW\|520D | BMW\|5 SERIES | BMW\|5 SERIES |
+
+Rep 1 vs Rep 2 on this gold, 94 vs 92 — they agree on 91 rows:
+
+| Listing | Gold | Rep 1 (exact_match) | Rep 2 (rep2_fuzzy) |
+|---|---|---|---|
+| Honda CRV - RE4 2007-2011 | HONDA\|CRV | HONDA\|CRV ✓ | HONDA\|CR-V |
+| Mazda MX5 - NB 1998-2005 | MAZDA\|MX5 | MAZDA\|MX5 ✓ | MAZDA\|MX-5 |
+| Toyota Mr2 - SW20 1990-1994 | TOYOTA\|MR2 | TOYOTA\|MR2 ✓ | TOYOTA\|MR 2 |
+| Mazda CX7 - ER 2006-2012 | MAZDA\|CX-7 | MAZDA\|2 | MAZDA\|CX-7 ✓ |
+
+Both miss the other five (Ram 1500, XR6, Emmeraude, FTO, Surf). The gap is
+Iteration 2a category 1: Rep 2 deletes punctuation, so CRV/CR-V, MX5/MX-5
+and MR2/MR 2 become one key and the tie-break picks the register spelling
+gold does not use; Rep 1 matches the listing's own spelling. Rep 2's one
+gain, CX7, is the punctuation case its repair targeted — Rep 1 matched the
+"2" in "2006".
+
+**Conclusion — Rep 3b fallback**
+- Rep 2's layer on this gold: net -2 (1 gained, 3 lost)
+- Rep 3b falls back to: Rep 2 (unchanged — the swap to Rep 1 was dropped because it would
+  be a second change inside the rep)
+- Reason (one line): keeping the fallback fixed means 3b's delta is chassis parsing alone.
+- Rep 3b baseline to beat: 91/100 (rep3_alias on this gold)
+- Known cost of keeping Rep 2: it loses 3 rows Rep 1 gets right (CRV, MX5, MR2), so
+  category 1 stays live rather than disappearing with the fallback.
+
+**Fix list** — one line per category, counted against the 9 Rep 3a errors
+| # | Category | Proposed change | Errors it can reach (listings) | Could break (currently correct rows) | Order |
+|---|---|---|---|---|---|
+| 1 | Punctuation collision | Merge the register's two spellings of the same vehicle so they resolve to one fixed name — MAZDA MX5;MX-5 and TOYOTA MR2;MR 2 — the way CRV;CR-V was merged in 3a. Fixed name = the spelling gold uses. *Not needed if 3b falls back to Rep 1*, which already gets both right. | 2 — Mazda MX5 - NB 1998-2005; Toyota Mr2 - SW20 1990-1994 | 0 found — no dev gold row uses MX-5 or MR 2. Only risk: gold later labelled with the other spelling. | 4 |
+| 2 | JDM name, register uses export name | Preference rule first: prefer the export name when a listing uses the JDM name. Surf/4Runner and Emmeraude/Galant are not in the alias table, so both are also added (they sit outside the top 40 by fleet — an exception to the selection rule) | 2 - Toyota Surf - RZN130, Mitsubishi Emmeraude - E52A 1992-1997 | 19 dev rows have a JDM name as gold; for 17 the JDM name is also the fixed name. The preference rule can flip Mazda Axela - BL MPS (MAZDA\|AXELA) and Mazda Atenza - GH 2008-2012 (MAZDA\|ATENZA) — the prediction for this iteration must account for up to −2 | 2 |
+| 4 | Make named inside the listing | The leftmost make name in the title is the make, matching the longest make name (so Land Rover beats Land); the model is the longest register model name found in the rest of the title | 1 - Dodge Ram 1500 - 94-01 | 3 currently correct rows contain a second make word: Suzuki Swift - ZC83S; Land Rover Discovery - Series 2 1999-2004; Mazda Titan - U-WGLAH SLT 1989-Present. Also 4 rows have a two-word model (BMW 3 Series x2, BMW 5 Series, Hyundai Santa Fe), which one-word matching would break | 3 |
+| 5 | Year-range number matched a numeric model | A digits-only token cannot be a model | 1 - Mitsubishi FTO - DE2A 1994-2000 | 0 in dev — no gold model is digits-only. Limitation: the register does hold digits-only models (BMW 318, 320, MAZDA 121), so this rule is wrong on them and only holds while none is in gold | 3 |
+| 6 | Listing names variant, parent absent | Add a variant column to the alias table (XR6 -> FALCON) and resolve a variant name to its parent model | 1 - Ford XR6 - FG-FGX 2008-2016 | 0 | 2 |
+| 7 | JDM name mapped to a different vehicle's generation | Stick with the chassis code | 2 - Honda Inspire - CB-CC 1989-1995, Mitsubishi RVR - N28W 1991-1997 | 0 | 1 |
+
+- Categories chassis-code parsing (Rep 3b) can reach: 2 and 6
+- Total errors reachable by Rep 3b: 3 of 9
 
 **Explanation**
 - Why the gap: The same errors occured, plus two new ones caused by the rule to treat the JDM and Export models are one, but to predict either one. I didn't count the errors when I made the prediction.
 - What this says about my model of the system: The resolver always chooses the model name that occur first, even if the listing states the other model name.
 - What I'd predict next, and why: 94/100, the chassis code will help the harness make the right choice between the JDM and Export model name.
+
+---
+
+### Rep 3b — Chassis-code parsing
+
+**Date:** 22/09
+
+**Initial setup**
+- Data:            data/gold_vehicles_dev.csv, 100 rows, Make/Model/Variant (Inspire and RVR at
+                   their original labels)
+- System:          rep3_alias + chassis-code parsing; fallback unchanged (Rep 2, rep2_fuzzy, threshold 95)
+- Metric:          key accuracy on MAKE|MODEL, correct / n, harness.score(); variant
+                   accuracy on the 5 rows with a gold variant, harness.score_variant()
+- Baseline to beat: Rep 3a, 91/100 (0.91)
+
+**The one specific change**
+- Read the chassis code in the listing and use it to pick the alias-table row, so a
+  JDM name is only applied inside its own chassis range. Everything else unchanged.
+
+**Prediction** — written before running
+- Predicted score: 95/100 (0.95)
+- Reasoning (one or two lines): Matching the chassis codes should correct the errors caused by selecting the JDM vs the export model.
+- Written at: 22/09 05:06 NZST
+
+**Result**
+- Observed score: 
+- Variant score: 
+- Signed error (observed − predicted): 
+- Measured at: 
+
+**Reconciliation:** 
+
+**Remaining errors** (all read)
+| Listing | Gold | Predicted |
+|---|---|---|
+|  |  |  |
+
+**Error categories**
+| # | Category | Survivor / New | Count | Example |
+|---|---|---|---|---|
+|  |  |  |  |  |
+
+**Explanation**
+- Why the gap: 
+- What this says about my model of the system: 
+- What I'd predict next, and why: 
 
 ---
 
