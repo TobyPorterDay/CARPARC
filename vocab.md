@@ -215,6 +215,28 @@ parts.
 - The model can be added even when the listing names only the variant, e.g.
   "Ford XR6" → model Falcon, variant XR6.
 
+## Chassis codes
+
+Written 22/09, after the Rep 3b run — records what the build does. Chassis codes are read from data/alias_vehicles.csv.
+
+- Go with the listing's chassis code if it doesn't agree with the model name.
+- Go with the chassis code if no model name matches.
+- If one chassis code matches two models of the same make, go with the model
+  name that matches the listing title.
+- If there is a partial code and range notation, use prefix matching.
+
+How these are applied:
+
+- Only the chassis codes of a make named in the listing are checked. A word
+  in the listing that is one of that make's model names (CR-V) is not read as
+  a chassis code.
+- Range notation is two parts joined by a hyphen, each holding a letter
+  (CB-CC, FG-FGX), so a year range (1989-1995) or a model number (CX-7) is not
+  a range. Prefix matching applies to both ends of a range only; a lone
+  partial code (NB, GH) must match a table code exactly.
+- When the chassis codes point at two models and neither is named in the
+  listing, the chassis code decides nothing and the model name decides.
+
 ## Known unresolved
 
 Not present in the 40-record gold set. Expected to appear at 3,000. Do not

@@ -779,27 +779,44 @@ gain, CX7, is the punctuation case its repair targeted — Rep 1 matched the
 - Written at: 22/09 05:06 NZST
 
 **Result**
-- Observed score: 
-- Variant score: 
-- Signed error (observed − predicted): 
-- Measured at: 
+- Observed score: 87/100
+- Variant score: 0/5
+- Signed error (observed − predicted): -8pp
+- Measured at: 06:07 on 22/09
 
-**Reconciliation:** 
+**Reconciliation:** 91 + 2 − 6 = 87. The new correct rows are Mitsubishi RVR - N28W 1991-1997 and Ford XR6 - FG-FGX 2008-2016. Eight rows differ from Rep 3a
 
-**Remaining errors** (all read)
+**Remaining errors** (13, all read)
 | Listing | Gold | Predicted |
 |---|---|---|
-|  |  |  |
+| Toyota Sprinter - AE110 | TOYOTA\|SPRINTER | TOYOTA\|COROLLA |
+| Toyota Sprinter - AE111 | TOYOTA\|SPRINTER | TOYOTA\|COROLLA |
+| Toyota Allex - ZZE122 2000-2006 | TOYOTA\|ALLEX | TOYOTA\|COROLLA |
+| Toyota Ceres - AE101 1992-1995 | TOYOTA\|CERES | TOYOTA\|COROLLA |
+| Ford Futura - BA | FORD\|FUTURA | FORD\|FALCON |
+| Ford Fairlane - BA-BF 2003-2006 | FORD\|FAIRLANE | FORD\|FALCON |
+| Honda Inspire - CB-CC 1989-1995 | HONDA\|INSPIRE | HONDA\|ACCORD |
+| Mazda MX5 - NB 1998-2005 | MAZDA\|MX5 | MAZDA\|MX-5 |
+| Toyota Mr2 - SW20 1990-1994 | TOYOTA\|MR2 | TOYOTA\|MR 2 |
+| Toyota Surf - RZN130 | TOYOTA\|4RUNNER | NONE |
+| Mitsubishi Emmeraude - E52A 1992-1997 | MITSUBISHI\|GALANT | NONE |
+| Dodge Ram 1500 - 94-01 | DODGE\|RAM | RAM\|1500 |
+| Mitsubishi FTO - DE2A 1994-2000 | MITSUBISHI\|FTO | MITSUBISHI\|2000 |
 
 **Error categories**
 | # | Category | Survivor / New | Count | Example |
 |---|---|---|---|---|
-|  |  |  |  |  |
+| 1 | Punctuation collision: prediction and gold are the same vehicle spelled differently, and the tie-break picked the other spelling | Survivor | 2 | Mazda MX5 - NB 1998-2005, gold=MAZDA\|MX5, predicted=MAZDA\|MX-5 |
+| 2 | Listing uses the JDM name, the register uses the export name — no string match is possible | Survivor | 2 | Toyota Surf - RZN130, gold=TOYOTA\|4RUNNER, predicted=NONE |
+| 4 | A make named inside the listing won the tie-break over the actual make | Survivor | 1 | Dodge Ram 1500 - 94-01, gold=DODGE\|RAM, predicted=RAM\|1500 |
+| 5 | A number from the year range matched a canonical model that is itself a number | Survivor | 1 | Mitsubishi FTO - DE2A 1994-2000, gold=MITSUBISHI\|FTO, predicted=MITSUBISHI\|2000 |
+| 7 | JDM name mapped to a different vehicle's generation, even with the chassis code. Likely not being read correctly | Survivor | 1 | Honda Inspire - CB-CC 1989-1995, gold=HONDA\|INSPIRE, predicted=HONDA\|ACCORD |
+| 8 | The chassis code matches a different model to the listing | New | 6 | Toyota Sprinter - AE110, gold=TOYOTA\|SPRINTER, predicted=TOYOTA\|COROLLA | 
 
 **Explanation**
-- Why the gap: 
-- What this says about my model of the system: 
-- What I'd predict next, and why: 
+- Why the gap: 6 new errors caused by the chassis code overiding the model name in the listing. 
+- What this says about my model of the system: The chassis code causes the system to default to the main model that uses that chassis.
+- What I'd predict next, and why: 93/100, the six new errors should be corrected by only using the chassis code if there is no match for the model name.
 
 ---
 
@@ -816,7 +833,7 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 1 | 1 | 93% | 91% | -2pp |
 | 2 | 2 | 84% | 89% | +5pp |
 | 2 | 3a | 97% | 91% | -6pp |
-|  |  |  |  |  |
+| 2 | 3b | 95% | 87% | -8pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |

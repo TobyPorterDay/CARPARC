@@ -35,6 +35,20 @@ Each vehicle has one fixed name, the first name in its mvr_model, and
 alias_match() only ever returns that name for it. When the lookup misses
 and Rep 2 answers with another of the vehicle's names (MAZDA|MAZDA3), it
 is replaced with the fixed one (MAZDA|AXELA).
+
+Rep 3b: chassis_match() is Rep 3a with JDM and export names scoped to the
+chassis codes of the table rows that give them. A register name (one in
+mvr_model) resolves as before. A JDM or export name resolves only when the
+listing also carries one of that row's chassis codes, so "Honda Inspire -
+CP2" is HONDA|ACCORD but "Honda Inspire - UA1" is left to Rep 2. The
+fallback maps Rep 2's answer to the fixed name through register names only.
+
+The listing's chassis code is read first and outranks the name: when the
+table gives the code to one vehicle, that vehicle is the answer, even if
+the listing names another model or no model the table knows. A code the
+table gives to two vehicles of one make is settled by the name in the
+listing. Range notation ("CB-CC") is matched by prefix, so a partial code
+reaches the full codes it starts.
 """
 
 import csv
@@ -235,6 +249,201 @@ def alias_match(title, threshold=FUZZY_THRESHOLD):
     Either way a vehicle in the alias table comes back under its fixed name.
     """
     return alias_lookup(title) or fixed_label(fuzzy_match(title, threshold))
+
+
+def load_chassis_aliases(path):
+    """Return (register, scoped, codes, names) from the alias table, for Rep 3b.
+
+    register is {make_key: {name_key: "MAKE|MODEL"}} from the mvr_model
+    names alone, built the way load_aliases() builds it: a name pointing at
+    two vehicles under one make is left out.
+
+    scoped is {make_key: {name_key: [("MAKE|MODEL", {chassis_key})]}} — one
+    entry per table row that gives the name as its JDM or export name,
+    carrying that row's chassis codes. A JDM or export name that is already
+    one of the same vehicle's register names is not scoped; it stays a
+    register name.
+
+    codes is {make_key: {chassis_key: {"MAKE|MODEL"}}} — every vehicle a
+    chassis code is given to under that make (Subaru's BR9 is both Legacy's
+    and Outback's).
+
+    names is {"MAKE|MODEL": {name_key}} — every name the table gives a
+    vehicle: register, JDM and export.
+    """
+    register = {}
+    ambiguous = set()
+    scoped = {}
+    codes = {}
+    names = {}
+    with open(path, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+
+    for row in rows:
+        make = row["make"].strip().upper()
+        merged = row["mvr_model"].split(";")
+        label = f"{make}|{merged[0].strip().upper()}"
+        by_name = register.setdefault(_key(make), {})
+        for name in merged:
+            name_key = _key(name)
+            if not name_key:
+                continue
+            if by_name.get(name_key, label) != label:
+                ambiguous.add((_key(make), name_key))
+            by_name[name_key] = label
+    for make_key, name_key in ambiguous:
+        del register[make_key][name_key]
+
+    for row in rows:
+        make = row["make"].strip().upper()
+        merged = row["mvr_model"].split(";")
+        label = f"{make}|{merged[0].strip().upper()}"
+        own_names = {_key(name) for name in merged}
+        chassis = {_key(code) for code in row["chassis_codes"].split(";") if _key(code)}
+        by_code = codes.setdefault(_key(make), {})
+        for code in chassis:
+            by_code.setdefault(code, set()).add(label)
+        by_name = scoped.setdefault(_key(make), {})
+        alias_names = _alias_names(row["jdm_name"]) + _alias_names(row["export_name"])
+        names.setdefault(label, set()).update(
+            _key(name) for name in merged + alias_names if _key(name)
+        )
+        for name in alias_names:
+            name_key = _key(name)
+            if not name_key or name_key in own_names:
+                continue
+            by_name.setdefault(name_key, []).append((label, chassis))
+    return register, scoped, codes, names
+
+
+_chassis_aliases = None
+
+
+def _get_chassis_aliases():
+    global _chassis_aliases
+    if _chassis_aliases is None:
+        _chassis_aliases = load_chassis_aliases(ALIAS_PATH)
+    return _chassis_aliases
+
+
+def chassis_lookup(title):
+    """Return "MAKE|MODEL" for the longest name in title Rep 3b accepts, else None.
+
+    A register name is accepted as in Rep 3a. A JDM or export name is
+    accepted only when the listing also carries a chassis code from a table
+    row that gives that name, and it resolves to that row's vehicle. The
+    chassis code is one of the listing's word runs, compared as a _key(), so
+    "CU2W" and "CU-2W" are the same code. If the chassis codes found point
+    the name at two different vehicles, the name is not used.
+    """
+    windows = set(_windows(title))
+    register, scoped, _, _ = _get_chassis_aliases()
+    best = None
+    for make_key in register.keys() | scoped.keys():
+        if make_key not in windows:
+            continue
+        found = [
+            (name_key, label)
+            for name_key, label in register.get(make_key, {}).items()
+            if name_key in windows
+        ]
+        for name_key, entries in scoped.get(make_key, {}).items():
+            if name_key not in windows:
+                continue
+            labels = {label for label, chassis in entries if chassis & windows}
+            if len(labels) == 1:
+                found.append((name_key, labels.pop()))
+        for name_key, label in found:
+            if best is None or len(name_key) > len(best[0]):
+                best = (name_key, label)
+    return best[1] if best else None
+
+
+def register_fixed_label(label):
+    """Return label under its vehicle's fixed name, using register names only.
+
+    Rep 3b's version of fixed_label(): a Rep 2 answer that is a JDM or export
+    name (HONDA|INSPIRE) is not moved onto another vehicle, because the
+    fallback has no chassis code to scope it with.
+    """
+    make, _, model = label.partition("|")
+    register, _, _, _ = _get_chassis_aliases()
+    return register.get(_key(make), {}).get(_key(model), label)
+
+
+def _is_range(parts):
+    """True when a hyphenated chunk's parts read as a chassis range ("CB-CC").
+
+    Both ends must hold a letter, so a year range (1989-1995) or a
+    punctuated model number (CX-7) is not a range.
+    """
+    return len(parts) == 2 and all(re.search(r"[A-Z]", part) for part in parts)
+
+
+def chassis_vehicles(title):
+    """Return the set of "MAKE|MODEL" the listing's chassis codes point at.
+
+    Only the codes of a make named in the listing are looked at. The listing
+    is split on whitespace into chunks; a chunk that is one of the make's
+    model names (CR-V) is not a chassis code. A chunk matches a code exactly,
+    as a whole (CP-2 is CP2) or by one of its hyphenated parts (GA4W in
+    "GA4W-xxx"). A chunk in range notation ("CB-CC", "FG-FGX") also matches
+    every code that starts with either end, so a partial code like CB
+    reaches CB3, CB4 ...
+    """
+    windows = set(_windows(title))
+    _, _, codes, names = _get_chassis_aliases()
+    found = set()
+    for make_key, by_code in codes.items():
+        if make_key not in windows:
+            continue
+        make_names = {
+            name_key
+            for label in {l for labels in by_code.values() for l in labels}
+            for name_key in names[label]
+        }
+        for chunk in title.upper().split():
+            chunk_key = _key(chunk)
+            if not chunk_key or chunk_key in make_names:
+                continue
+            parts = [_key(part) for part in chunk.split("-") if _key(part)]
+            for key in {chunk_key, *parts}:
+                found |= by_code.get(key, set())
+            if _is_range(parts):
+                for code, labels in by_code.items():
+                    if any(code.startswith(part) for part in parts):
+                        found |= labels
+    return found
+
+
+def chassis_match(title, threshold=FUZZY_THRESHOLD):
+    """Rep 3b: the listing's chassis code picks the vehicle, names second.
+
+    - The chassis codes point at one vehicle: that vehicle, whether or not
+      the model name in the listing agrees, and whether or not any name
+      matched at all.
+    - They point at several (a code shared by two vehicles, or codes from
+      different vehicles): the one whose name, any of its table names,
+      appears in the listing, longest name first. If none does, the chassis
+      code decides nothing.
+    - No chassis code decides: chassis_lookup()'s name match, with JDM and
+      export names scoped to their chassis, then Rep 2 as in Rep 3a.
+    """
+    vehicles = chassis_vehicles(title)
+    if len(vehicles) == 1:
+        return next(iter(vehicles))
+    if vehicles:
+        windows = set(_windows(title))
+        _, _, _, names = _get_chassis_aliases()
+        named = [
+            (len(name_key), label)
+            for label in vehicles
+            for name_key in names[label]
+            if name_key in windows
+        ]
+        if named:
+            return max(named)[1]
+    return chassis_lookup(title) or register_fixed_label(fuzzy_match(title, threshold))
 
 
 def main():

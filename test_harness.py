@@ -100,6 +100,65 @@ def test_rep3_alias_returns_one_fixed_name_per_vehicle():
     assert vclf.fixed_label("NONE") == "NONE"
 
 
+def test_rep3b_scopes_jdm_names_to_their_chassis():
+    # Titles are absent from both gold sets. RVR and Inspire are JDM names
+    # the table gives only to ASX GA1W-GA4W and Accord CP2/CP3: inside that
+    # range they resolve to the table's vehicle, outside it (or with no
+    # chassis code) they fall back to Rep 2.
+    classify_fn = vclf.chassis_match
+    assert classify_fn("Mitsubishi RVR - GA4W") == "MITSUBISHI|ASX"
+    assert classify_fn("Honda Inspire - CP2") == "HONDA|ACCORD"
+    assert classify_fn("Mitsubishi RVR - N23W") == vclf.fuzzy_match("Mitsubishi RVR - N23W")
+    assert classify_fn("Honda Inspire") == "HONDA|INSPIRE"
+    assert vclf.chassis_lookup("Honda Inspire - UA1") is None
+    # Punctuation in the chassis code does not matter.
+    assert classify_fn("Honda Inspire - CP-2") == "HONDA|ACCORD"
+
+
+def test_rep3b_keeps_register_names_unscoped():
+    # Names in mvr_model resolve with or without a chassis code, as in 3a,
+    # and Rep 2's register names still come back under the fixed name.
+    classify_fn = vclf.chassis_match
+    assert classify_fn("Mitsubishi Airtrek") == "MITSUBISHI|OUTLANDER"
+    assert classify_fn("Toyota Vitz") == "TOYOTA|YARIS"
+    assert classify_fn("Mazda Mazda3 - BK") == classify_fn("Mazda Axela - BK") == "MAZDA|AXELA"
+    assert vclf.register_fixed_label("MAZDA|MAZDA3") == "MAZDA|AXELA"
+    # A JDM-only name is not a register name, so Rep 2's answer is kept.
+    assert vclf.register_fixed_label("HONDA|INSPIRE") == "HONDA|INSPIRE"
+    assert classify_fn("Nothing matches here at all") == "NONE"
+
+
+def test_rep3b_chassis_outranks_the_name():
+    # Titles are absent from both gold sets. ACA31 is a RAV4 code, so it
+    # wins over the Corolla named in the listing. BA is a Falcon code and
+    # XR8 is no name in the table, so the chassis alone picks the vehicle.
+    classify_fn = vclf.chassis_match
+    assert classify_fn("Toyota Corolla - ACA31") == "TOYOTA|RAV4"
+    assert classify_fn("Ford XR8 - BA") == "FORD|FALCON"
+
+
+def test_rep3b_shared_chassis_is_settled_by_the_name():
+    # BR9 is both Legacy's and Outback's. The name in the listing picks one,
+    # the longest name first; with neither named, the code decides nothing.
+    classify_fn = vclf.chassis_match
+    assert vclf.chassis_vehicles("Subaru - BR9") == {"SUBARU|LEGACY", "SUBARU|OUTBACK"}
+    assert classify_fn("Subaru Legacy - BR9") == "SUBARU|LEGACY"
+    assert classify_fn("Subaru Outback - BR9") == "SUBARU|OUTBACK"
+    assert classify_fn("Subaru Legacy Outback - BR9") == "SUBARU|OUTBACK"
+    assert classify_fn("Subaru Impreza - BR9") == vclf.fuzzy_match("Subaru Impreza - BR9")
+
+
+def test_rep3b_range_notation_matches_by_prefix():
+    # Both ends of a range are prefixes: CB reaches Accord's CB3/CB4/...,
+    # CD its CD3/CD4/.... A year range and a punctuated model name are not
+    # ranges, and CR-V is a model name, not the Accord's CR5-CR7.
+    assert vclf.chassis_vehicles("Honda Ascot - CB-CD") == {"HONDA|ACCORD"}
+    assert vclf.chassis_vehicles("Ford Fairmont - BA-BF") == {"FORD|FALCON"}
+    assert vclf.chassis_vehicles("Toyota Hilux 1995-2000") == set()
+    assert vclf.chassis_vehicles("Honda CR-V") == set()
+    assert vclf.chassis_match("Honda CR-V - RD1") == "HONDA|CRV"
+
+
 def test_score_reps_invokes_rep2_fuzzy_per_listing():
     # score_reps() must call the rep once for every gold listing, not skip it
     # or reuse a cached prediction. Counting calls proves the function ran.
