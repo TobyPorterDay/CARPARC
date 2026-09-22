@@ -49,6 +49,13 @@ the listing names another model or no model the table knows. A code the
 table gives to two vehicles of one make is settled by the name in the
 listing. Range notation ("CB-CC") is matched by prefix, so a partial code
 reaches the full codes it starts.
+
+Rep 3c: name_first_match() is Rep 3a with 3b's chassis code as a last
+resort. The listing's name is tried first, exactly as in Rep 3a (the alias
+table, then Rep 2); only when that finds nothing does the chassis code get
+a say, and then only when it points at a single vehicle. So "Toyota Allex -
+ZZE122" stays TOYOTA|ALLEX, but "Ford XR6 - FG-FGX", which names no model,
+is FORD|FALCON.
 """
 
 import csv
@@ -444,6 +451,21 @@ def chassis_match(title, threshold=FUZZY_THRESHOLD):
         if named:
             return max(named)[1]
     return chassis_lookup(title) or register_fixed_label(fuzzy_match(title, threshold))
+
+
+def name_first_match(title, threshold=FUZZY_THRESHOLD):
+    """Rep 3c: Rep 3a's name match, and the chassis code only if that finds none.
+
+    A chassis code the table gives to several vehicles decides nothing,
+    since there is no name to settle it.
+    """
+    label = alias_match(title, threshold)
+    if label != "NONE":
+        return label
+    vehicles = chassis_vehicles(title)
+    if len(vehicles) == 1:
+        return next(iter(vehicles))
+    return "NONE"
 
 
 def main():

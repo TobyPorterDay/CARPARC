@@ -820,6 +820,57 @@ gain, CX7, is the punctuation case its repair targeted — Rep 1 matched the
 
 ---
 
+### Rep 3c — Name first, chassis code only when no name matches
+
+**Date:** 23/09
+
+**Initial setup**
+- Data:            data/gold_vehicles_dev.csv, 100 rows, Make/Model/Variant (commit: 2c841a8 )
+- System:          rep3b_chassis with one change (below); fallback unchanged (Rep 2,
+                   rep2_fuzzy, threshold 95)
+- Metric:          key accuracy on MAKE|MODEL, correct / n, harness.score(); variant
+                   accuracy on the 5 rows with a gold variant, harness.score_variant()
+- Baseline to beat: Rep 3b, 87/100 (0.87)
+
+**The one specific change**
+- The system prioritises a model name match before trying to match the chassis code if it can't find one. It only reads the chassis codes when all of the alias table returns "NONE". A fuzzy name match from rep 2 counts as a match.
+
+**Which rows the change can reach** — counted before running
+- Rep 3b errors it should fix (listings): Toyota Allex - ZZE122 2000-2006, Toyota Sprinter - AE110, Toyota Sprinter - AE111, Toyota Ceres - AE101 1992-1995, Ford Futura - BA, Ford Fairlane - BA-BF 2003-2006, Honda Inspire - CB-CC 1989-1995
+- Currently correct rows it could break (listings): Ford XR6 - FG-FGX 2008-2016, Mitsubishi RVR - N28W 1991-1997
+
+**Prediction** — written before running
+- Predicted score: 94/100 (revised from 93/100 after counting the rows that should be corrected)
+- Reasoning (one or two lines): The seven errors listed above should be corrected.
+- Written at: 05:35 on 23/09
+
+**Result**
+- Observed score: 
+- Variant score: 
+- Signed error (observed − predicted): 
+- Measured at: 
+
+**Reconciliation:** 87 + ___ − ___ = ___
+- Rows fixed: 
+- Rows broken: 
+
+**Remaining errors** (all read)
+| Listing | Gold | Predicted |
+|---|---|---|
+|  |  |  |
+
+**Error categories**
+| # | Category | Survivor / New | Count | Example |
+|---|---|---|---|---|
+|  |  |  |  |  |
+
+**Explanation**
+- Why the gap: 
+- What this says about my model of the system: 
+- What I'd predict next, and why: 
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).

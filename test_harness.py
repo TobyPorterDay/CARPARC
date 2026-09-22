@@ -39,11 +39,15 @@ def test_reps_registry_accessible():
     assert "exact_match" in harness.REPS
     assert "rep2_fuzzy" in harness.REPS
     assert "rep3_alias" in harness.REPS
+    assert "rep3b_chassis" in harness.REPS
+    assert "rep3c_name_first" in harness.REPS
     assert harness.REPS["stub"]("anything") is None
     assert harness.REPS["classify"] is clf.classify
     assert harness.REPS["exact_match"] is vclf.match
     assert harness.REPS["rep2_fuzzy"] is vclf.fuzzy_match
     assert harness.REPS["rep3_alias"] is vclf.alias_match
+    assert harness.REPS["rep3b_chassis"] is vclf.chassis_match
+    assert harness.REPS["rep3c_name_first"] is vclf.name_first_match
 
 
 def test_rep2_fuzzy_is_called_through_registry():
@@ -159,6 +163,36 @@ def test_rep3b_range_notation_matches_by_prefix():
     assert vclf.chassis_match("Honda CR-V - RD1") == "HONDA|CRV"
 
 
+def test_rep3c_name_outranks_the_chassis():
+    # Titles are absent from both gold sets. Whenever Rep 3a finds a name,
+    # its answer stands and the chassis code is not read: ACA31 is a RAV4
+    # code, but the listing names a Corolla. The same listings under 3b
+    # went to the chassis's vehicle.
+    classify_fn = vclf.name_first_match
+    for title in [
+        "Toyota Corolla - ACA31",
+        "Mitsubishi Airtrek - CU2W",
+        "Honda Inspire - UA1",
+        "Mazda Mazda3 - BK",
+        "Subaru Legacy - BR9",
+    ]:
+        assert classify_fn(title) == vclf.alias_match(title), title
+    assert classify_fn("Toyota Corolla - ACA31") == "TOYOTA|COROLLA"
+    assert vclf.chassis_match("Toyota Corolla - ACA31") == "TOYOTA|RAV4"
+
+
+def test_rep3c_chassis_only_when_no_name_matches():
+    # XR8 is no name in the table and Rep 2 finds nothing, so the BA code
+    # picks the Falcon. A code shared by two vehicles (BR9) has no name to
+    # settle it, so it decides nothing.
+    classify_fn = vclf.name_first_match
+    assert vclf.alias_match("Ford XR8 - BA") == "NONE"
+    assert classify_fn("Ford XR8 - BA") == "FORD|FALCON"
+    assert vclf.alias_match("Subaru - BR9") == "NONE"
+    assert classify_fn("Subaru - BR9") == "NONE"
+    assert classify_fn("Nothing matches here at all") == "NONE"
+
+
 def test_score_reps_invokes_rep2_fuzzy_per_listing():
     # score_reps() must call the rep once for every gold listing, not skip it
     # or reuse a cached prediction. Counting calls proves the function ran.
@@ -188,9 +222,17 @@ def test_loop_over_reps():
     # stub always returns None, so it scores 0. exact_match is a vehicle
     # (Make|Model) rep scored here against the part_type gold set, so none of
     # its predictions can ever equal a part_type label — it also scores 0.
-    # rep2_fuzzy and rep3_alias are the same kind of vehicle rep, so they
-    # score 0 for the same reason.
-    expected = {"stub": 0, "classify": 3, "exact_match": 0, "rep2_fuzzy": 0, "rep3_alias": 0}
+    # rep2_fuzzy and the rep3 variants are the same kind of vehicle rep, so
+    # they score 0 for the same reason.
+    expected = {
+        "stub": 0,
+        "classify": 3,
+        "exact_match": 0,
+        "rep2_fuzzy": 0,
+        "rep3_alias": 0,
+        "rep3b_chassis": 0,
+        "rep3c_name_first": 0,
+    }
 
     con = duckdb.connect()
     listings = harness.load_gold(con)
@@ -435,6 +477,8 @@ if __name__ == "__main__":
     test_rep3_alias_resolves_jdm_and_export_names()
     test_rep3_alias_falls_back_to_rep2()
     test_rep3_alias_returns_one_fixed_name_per_vehicle()
+    test_rep3c_name_outranks_the_chassis()
+    test_rep3c_chassis_only_when_no_name_matches()
     test_score_reps_invokes_rep2_fuzzy_per_listing()
     test_loop_over_reps()
     test_sample_errors_deterministic()
