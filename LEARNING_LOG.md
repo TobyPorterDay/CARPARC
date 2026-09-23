@@ -880,8 +880,8 @@ Balances: 7 survivors (Rep 3b's 13 minus the 6 category 8 fixes) + 1 new (RVR, c
 
 **Explanation**
 - Why the gap: The Honda Inspire model name is still mapped to Accord, so it defaults to the model name instead of the chassis code. Same issue for the Mistsubishi RVR row. The XR6 row didn't break, so the system moves to the chassis codes when a model match can't be found.
-- What this says about my model of the system: The system is ignoring the chassis codes even though there is no model name match.
-- What I'd predict next, and why: 94/100, removing the alias table rule that returns a fixed name for both the JDM and export names should correct the two errors above. Iteration must continue until rep 3 beats rep 1's score of 94.
+- What this says about my model of the system: The system is ignoring the chassis codes because the alias table rule is mapping the listing to the other name of the model.
+- What I'd predict next, and why: 94/100, changing the function to match the model name and then confirm it using the chassis code should correct the two errors above. One more iteration then move on to rep 4.
 
 ---
 
