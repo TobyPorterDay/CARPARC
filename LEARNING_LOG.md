@@ -845,29 +845,43 @@ gain, CX7, is the punctuation case its repair targeted — Rep 1 matched the
 - Written at: 05:35 on 23/09
 
 **Result**
-- Observed score: 
-- Variant score: 
-- Signed error (observed − predicted): 
-- Measured at: 
+- Observed score: 92/100
+- Variant score: 0/5
+- Signed error (observed − predicted): -2pp
+- Measured at: 06:46 on 23/09
 
-**Reconciliation:** 87 + ___ − ___ = ___
-- Rows fixed: 
-- Rows broken: 
+**Reconciliation:** 87 + 6 − 1 = 92
+- Rows fixed: Toyota Sprinter - AE110, Toyota Sprinter - AE111, Toyota Allex - ZZE122 2000-2006, Toyota Ceres - AE101 1992-1995, Ford Futura - BA, Ford Fairlane - BA-BF 2003-2006
+- Rows broken: Mitsubishi RVR - N28W 1991-1997
 
 **Remaining errors** (all read)
 | Listing | Gold | Predicted |
 |---|---|---|
-|  |  |  |
+| Mazda MX5 - NB 1998-2005 | MAZDA\|MX5 | MAZDA\|MX-5 |
+| Toyota Mr2 - SW20 1990-1994 | TOYOTA\|MR2 | TOYOTA\|MR 2 |
+| Toyota Surf - RZN130 | TOYOTA\|4RUNNER | NONE |
+| Mitsubishi Emmeraude - E52A 1992-1997 | MITSUBISHI\|GALANT | NONE |
+| Dodge Ram 1500 - 94-01 | DODGE\|RAM | RAM\|1500 |
+| Mitsubishi FTO - DE2A 1994-2000 | MITSUBISHI\|FTO | MITSUBISHI\|2000 |
+| Honda Inspire - CB-CC 1989-1995 | HONDA\|INSPIRE | HONDA\|ACCORD |
+| Mitsubishi RVR - N28W 1991-1997 | MITSUBISHI\|RVR | MITSUBISHI\|ASX |
 
 **Error categories**
 | # | Category | Survivor / New | Count | Example |
 |---|---|---|---|---|
-|  |  |  |  |  |
+| 1 | Punctuation collision: prediction and gold are the same vehicle spelled differently, and the tie-break picked the other spelling | Survivor | 2 | Mazda MX5 - NB 1998-2005, gold=MAZDA\|MX5, predicted=MAZDA\|MX-5 |
+| 2 | Listing uses the JDM name, the register uses the export name — no string match is possible | Survivor | 2 | Toyota Surf - RZN130, gold=TOYOTA\|4RUNNER, predicted=NONE |
+| 4 | A make named inside the listing won the tie-break over the actual make | Survivor | 1 | Dodge Ram 1500 - 94-01, gold=DODGE\|RAM, predicted=RAM\|1500 |
+| 5 | A number from the year range matched a canonical model that is itself a number | Survivor | 1 | Mitsubishi FTO - DE2A 1994-2000, gold=MITSUBISHI\|FTO, predicted=MITSUBISHI\|2000 |
+| 7 | JDM name mapped to a different vehicle's generation — the name is matched first, so the chassis code is never read | 1 Survivor (Inspire), 1 New (RVR) | 2 | Mitsubishi RVR - N28W 1991-1997, gold=MITSUBISHI\|RVR, predicted=MITSUBISHI\|ASX |
+Uncategorised / other: 0
+
+Balances: 7 survivors (Rep 3b's 13 minus the 6 category 8 fixes) + 1 new (RVR, correct in 3b, back in category 7 as in 3a) = 8. No new categories; category 8 is cleared.
 
 **Explanation**
-- Why the gap: 
-- What this says about my model of the system: 
-- What I'd predict next, and why: 
+- Why the gap: The Honda Inspire model name is still mapped to Accord, so it defaults to the model name instead of the chassis code. Same issue for the Mistsubishi RVR row. The XR6 row didn't break, so the system moves to the chassis codes when a model match can't be found.
+- What this says about my model of the system: The system is ignoring the chassis codes even though there is no model name match.
+- What I'd predict next, and why: 94/100, removing the alias table rule that returns a fixed name for both the JDM and export names should correct the two errors above. Iteration must continue until rep 3 beats rep 1's score of 94.
 
 ---
 
@@ -885,7 +899,7 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 2 | 2 | 84% | 89% | +5pp |
 | 2 | 3a | 97% | 91% | -6pp |
 | 2 | 3b | 95% | 87% | -8pp |
-|  |  |  |  |  |
+| 2 | 3c | 94% | 92% | -2pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
