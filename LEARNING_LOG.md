@@ -881,7 +881,66 @@ Balances: 7 survivors (Rep 3b's 13 minus the 6 category 8 fixes) + 1 new (RVR, c
 **Explanation**
 - Why the gap: The Honda Inspire model name is still mapped to Accord, so it defaults to the model name instead of the chassis code. Same issue for the Mistsubishi RVR row. The XR6 row didn't break, so the system moves to the chassis codes when a model match can't be found.
 - What this says about my model of the system: The system is ignoring the chassis codes because the alias table rule is mapping the listing to the other name of the model.
-- What I'd predict next, and why: 94/100, changing the function to match the model name and then confirm it using the chassis code should correct the two errors above. One more iteration then move on to rep 4.
+- What I'd predict next, and why: 94/100, removing the alias names that are listed in the MVR should prevent the system swapping to the wrong model name. One more iteration then move on to rep 4. The orginal plan was to change the function to match the model name and then confirm it using the chassis code, but I discovered this wouldn't work when checking which rows would be corrected or broken.
+
+---
+
+### Rep 3d — Drop alias names that are listed in the MVR (final Rep 3 iteration)
+
+Last iteration of Rep 3 (cap set in the Rep 3c explanation). Whatever this
+scores is Rep 3's result — the deterministic ceiling Rep 4 is measured against.
+
+**Date:** 28/09
+
+**Initial setup**
+- Data:            data/gold_vehicles_dev.csv, 100 rows, Make/Model/Variant (commit: b82b3fa )
+- System:          rep3c_name_first with one change (below); fallback unchanged (Rep 2,
+                   rep2_fuzzy, threshold 95)
+- Metric:          key accuracy on MAKE|MODEL, correct / n, harness.score(); variant
+                   accuracy on the 5 rows with a gold variant, harness.score_variant()
+- Baseline to beat: Rep 3c, 92/100 (0.92)
+
+**The one specific change**
+- Drop the alias names that are already seperate models in the register. Names dropped: RVR, Inspire, Ignis
+
+**Which rows the change can reach** — counted before running
+- Rep 3c errors it should fix (listings): Mitsubishi RVR - N28W 1991-1997, Honda Inspire - CB-CC 1989-1995
+- Currently correct rows it could break (listings): Suzuki Swift - ZC83S
+
+**Prediction** — written before running
+- Predicted score: 94/100
+- Reasoning (one or two lines): The two errors from Rep 3c should be corrected since the alias table will treat the JDM and export model names seperately.
+- Written at: 06:59 on 25/09.
+
+**Result**
+- Observed score: 
+- Variant score: 
+- Signed error (observed − predicted): 
+- Measured at: 
+
+**Reconciliation:** 92 + ___ − ___ = ___
+- Rows fixed: 
+- Rows broken: 
+
+**Remaining errors** (all read)
+| Listing | Gold | Predicted |
+|---|---|---|
+|  |  |  |
+
+**Error categories**
+| # | Category | Survivor / New | Count | Example |
+|---|---|---|---|---|
+|  |  |  |  |  |
+
+**Explanation**
+- Why the gap: 
+- What this says about my model of the system: 
+- What I'd predict next, and why: 
+
+**Rep 3 result — the deterministic ceiling**
+- Final score: ___/100 (Rep 1: 94, Rep 2: 92, Rep 3a: 91, 3b: 87, 3c: 92, 3d: ___)
+- Fleet coverage of the alias table: 
+- Why the ceiling sits where it does (one or two lines): 
 
 ---
 
