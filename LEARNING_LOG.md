@@ -957,7 +957,7 @@ Balances: 8 survivors from Rep 3c minus the 2 category 7 fixes (Inspire, RVR) = 
 
 ### Rep 4 — LLM Extraction to canonical lookup
 
-**Date:** 28/09
+**Date:** 29/09
 
 **Initial setup**
 - Data:            data/gold_vehicles_dev.csv, 100 rows, Make/Model/Variant (commit: 311d267)
@@ -968,6 +968,8 @@ Balances: 8 survivors from Rep 3c minus the 2 category 7 fixes (Inspire, RVR) = 
                    Prompt: LLM_SYSTEM in vehicle_classify.py (commit: 311d267).
                    Input: title only. Replies cached per title in data/rep4_llm_cache.json.
                    Refused or cut-off reply → the run stops with an error (no NONE).
+                   Run: all 100 calls answered by claude-opus-5; fallback used 0 times
+                   (data/rep4_llm_cache.json, commit: f862832).
 - Metric:          key accuracy on MAKE|MODEL, correct / n, harness.score(); variant
                    accuracy on the 5 rows with a gold variant, harness.score_variant()
 - Baseline to beat: Rep 3d, 94/100 (0.94) — the deterministic ceiling
@@ -985,32 +987,38 @@ Balances: 8 survivors from Rep 3c minus the 2 category 7 fixes (Inspire, RVR) = 
 - Written at: 04:28 on 29/09
 
 **Result**
-- Observed score:
-- Variant score:
-- Signed error (observed − predicted):
-- Measured at:
+- Observed score: 95/100
+- Variant score: 0/5
+- Signed error (observed − predicted): +20pp
+- Measured at: 05:56 on 29/09
 
-**Reconciliation:** 94 + fixed − broken = 
-- Rows fixed:
-- Rows broken:
+**Reconciliation:** 94 + 1 − 0 = 95
+- Rows fixed: Mitsubishi FTO - DE2A 1994-2000
+- Rows broken: None
 
 **Remaining errors** (all read)
 | Listing | Gold | Predicted |
 |---|---|---|
-|  |  |  |
+| Mazda MX5 - NB 1998-2005 | MAZDA\|MX5 | MAZDA\|MX-5 |
+| Toyota Mr2 - SW20 1990-1994 | TOYOTA\|MR2 | TOYOTA\|MR 2 |
+| Toyota Surf - RZN130 | TOYOTA\|4RUNNER | NONE |
+| Mitsubishi Emmeraude - E52A 1992-1997 | MITSUBISHI\|GALANT | NONE |
+| Dodge Ram 1500 - 94-01 | DODGE\|RAM | RAM\|1500 |
 
 **Error categories**
 | # | Category | Survivor / New | Count | Example |
 |---|---|---|---|---|
-|  |  |  |  |  |
-Uncategorised / other:
+| 1 | Punctuation collision: prediction and gold are the same vehicle spelled differently, and the tie-break picked the other spelling | Survivor | 2 | Mazda MX5 - NB 1998-2005, gold=MAZDA\|MX5, predicted=MAZDA\|MX-5 |
+| 2 | Listing uses the JDM name, the register uses the export name — no string match is possible | Survivor | 2 | Toyota Surf - RZN130, gold=TOYOTA\|4RUNNER, predicted=NONE |
+| 4 | A make named inside the listing won the tie-break over the actual make | Survivor | 1 | Dodge Ram 1500 - 94-01, gold=DODGE\|RAM, predicted=RAM\|1500 |
+Uncategorised / other: 0
 
-Balances: 
+Balances: 6 survivors from Rep 3d minus the 1 category 5 fix (FTO) = 5, + 0 new = 5. No new categories; category 5 is cleared.
 
 **Explanation**
-- Why the gap:
-- What this says about my model of the system:
-- What I'd predict next, and why:
+- Why the gap: None of the rows at risk of being broken ended up breaking. I assumed all the possible breaks would happen when making the prediction. Only one of the remaining errors was fixed. Three of the possible fixes couldn't happen with the design of rep 4. The LLM prompt was instructed not to change the extracted details before inputting to the rep 3d function.
+- What this says about my model of the system: The chassis codes doesn't overide the model name when it covers many different models. The remaining fixable errors are spelling and parsing issues. Expecting all possible breaks to occur doesn't result in an accurate prdediction.
+- What I'd predict next, and why: 97/100, getting the LLM to decide tie-breaks should solve the errors caused by spelling. 
 
 ---
 
@@ -1030,7 +1038,7 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 2 | 3b | 95% | 87% | -8pp |
 | 2 | 3c | 94% | 92% | -2pp |
 | 2 | 3d | 94% | 94% | 0pp |
-|  |  |  |  |  |
+| 2 | 4 | 75% | 95% | +20pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
