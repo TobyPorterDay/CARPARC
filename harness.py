@@ -45,6 +45,7 @@ REPS = {
     "rep3b_chassis": vclf.chassis_match,
     "rep3c_name_first": vclf.name_first_match,
     "rep3d_distinct_names": vclf.distinct_name_match,
+    "rep4_llm_extract": vclf.llm_extract_match,
 }
 
 

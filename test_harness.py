@@ -50,6 +50,7 @@ def test_reps_registry_accessible():
     assert harness.REPS["rep3b_chassis"] is vclf.chassis_match
     assert harness.REPS["rep3c_name_first"] is vclf.name_first_match
     assert harness.REPS["rep3d_distinct_names"] is vclf.distinct_name_match
+    assert harness.REPS["rep4_llm_extract"] is vclf.llm_extract_match
 
 
 def test_rep2_fuzzy_is_called_through_registry():
@@ -244,6 +245,78 @@ def test_rep3d_otherwise_matches_rep3c():
     assert vclf.alias_match("Mitsubishi RVR - GA4W") == "MITSUBISHI|ASX"
 
 
+def _fake_llm(answers):
+    """Swap vclf.llm_extract for a lookup in answers, so no test calls the API.
+
+    A title missing from answers gets empty fields. Returns the original to
+    put back.
+    """
+    original = vclf.llm_extract
+    empty = {"make": "", "model": "", "chassis": ""}
+    vclf.llm_extract = lambda title: answers.get(title, empty)
+    return original
+
+
+def test_rep4_matches_the_rebuilt_fields():
+    # Titles here are not in either gold set, so these checks say nothing
+    # about Rep 4's score. The matcher sees only the fields: the year range
+    # the LLM left out never reaches it.
+    title = "Honda Odyssey - RB1 2003-2008"
+    original = _fake_llm({title: {"make": "Honda", "model": "Odyssey", "chassis": "RB1"}})
+    try:
+        assert vclf.llm_extract_match(title) == "HONDA|ODYSSEY"
+        assert vclf.llm_extract_match("No vehicle in this title") == "NONE"
+    finally:
+        vclf.llm_extract = original
+
+
+def test_rep4_extraction_is_cached():
+    # A title already in the cache is answered from it; the API is not asked.
+    title = "Honda Odyssey - RB1 2003-2008"
+    fields = {"make": "Honda", "model": "Odyssey", "chassis": "RB1"}
+    original_cache, original_ask = vclf._llm_cache, vclf._ask_llm
+
+    def fail(title):
+        raise AssertionError(f"API called for cached title {title!r}")
+
+    vclf._llm_cache, vclf._ask_llm = {title: fields}, fail
+    try:
+        assert vclf.llm_extract(title) == fields
+    finally:
+        vclf._llm_cache, vclf._ask_llm = original_cache, original_ask
+
+
+def test_rep4_records_the_model_that_answered():
+    # A fake client stands in for the API: one reply from LLM_MODEL, one
+    # where it declined and the fallback answered. No request is sent.
+    from types import SimpleNamespace as NS
+
+    def reply(model, iterations):
+        return NS(
+            stop_reason="end_turn",
+            model=model,
+            content=[NS(type="text", text='{"make": "Honda", "model": "Odyssey", "chassis": "RB1"}')],
+            usage=NS(iterations=[NS(type=t) for t in iterations]),
+        )
+
+    replies = [
+        reply(vclf.LLM_MODEL, ["message"]),
+        reply(vclf.LLM_FALLBACK_MODEL, ["message", "fallback_message"]),
+    ]
+    fake = NS(beta=NS(messages=NS(create=lambda **kwargs: replies.pop(0))))
+    original = vclf._llm_client
+    vclf._llm_client = fake
+    try:
+        first = vclf._ask_llm("Honda Odyssey - RB1 2003-2008")
+        second = vclf._ask_llm("Honda Odyssey - RB1 2003-2008")
+    finally:
+        vclf._llm_client = original
+
+    assert (first["llm_model"], first["llm_fallback"]) == (vclf.LLM_MODEL, False)
+    assert (second["llm_model"], second["llm_fallback"]) == (vclf.LLM_FALLBACK_MODEL, True)
+    assert first["model"] == "Odyssey"
+
+
 def test_score_reps_invokes_rep2_fuzzy_per_listing():
     # score_reps() must call the rep once for every gold listing, not skip it
     # or reuse a cached prediction. Counting calls proves the function ran.
@@ -258,10 +331,12 @@ def test_score_reps_invokes_rep2_fuzzy_per_listing():
 
     original = harness.REPS["rep2_fuzzy"]
     harness.REPS["rep2_fuzzy"] = counting_fuzzy
+    original_llm = _fake_llm({})
     try:
         harness.score_reps(con, listings)
     finally:
         harness.REPS["rep2_fuzzy"] = original
+        vclf.llm_extract = original_llm
 
     assert len(calls) == 40, f"expected 40 calls, one per gold listing, got {len(calls)}"
     assert calls == [listing for (listing,) in listings], "calls must follow the gold listings"
@@ -273,8 +348,8 @@ def test_loop_over_reps():
     # stub always returns None, so it scores 0. exact_match is a vehicle
     # (Make|Model) rep scored here against the part_type gold set, so none of
     # its predictions can ever equal a part_type label — it also scores 0.
-    # rep2_fuzzy and the rep3 variants are the same kind of vehicle rep, so
-    # they score 0 for the same reason.
+    # rep2_fuzzy, the rep3 variants and rep4 are the same kind of vehicle rep,
+    # so they score 0 for the same reason. rep4's LLM is faked here.
     expected = {
         "stub": 0,
         "classify": 3,
@@ -284,12 +359,17 @@ def test_loop_over_reps():
         "rep3b_chassis": 0,
         "rep3c_name_first": 0,
         "rep3d_distinct_names": 0,
+        "rep4_llm_extract": 0,
     }
 
     con = duckdb.connect()
     listings = harness.load_gold(con)
 
-    results = harness.score_reps(con, listings)
+    original = _fake_llm({})
+    try:
+        results = harness.score_reps(con, listings)
+    finally:
+        vclf.llm_extract = original
 
     for name, (correct, n, accuracy) in results.items():
         assert n == 40, f"{name}: expected n=40, got {n}"
@@ -369,13 +449,17 @@ def test_stub_predicts_none_for_every_listing():
 
 def test_printed_counts_sum_to_gold_size():
     # Every rep's printed table accounts for all 40 gold listings exactly once.
-    for rep in harness.REPS:
-        rows, (_, n, _) = label_stats.get_counts(rep)
-        cells = label_stats.to_cells(rows)
+    original = _fake_llm({})
+    try:
+        for rep in harness.REPS:
+            rows, (_, n, _) = label_stats.get_counts(rep)
+            cells = label_stats.to_cells(rows)
 
-        assert n == 40, f"{rep}: expected n=40, got {n}"
-        total = sum(count for _, _, count in cells)
-        assert total == 40, f"{rep}: printed counts sum to {total}, expected 40"
+            assert n == 40, f"{rep}: expected n=40, got {n}"
+            total = sum(count for _, _, count in cells)
+            assert total == 40, f"{rep}: printed counts sum to {total}, expected 40"
+    finally:
+        vclf.llm_extract = original
 
 
 def test_classify_has_no_none_row():
@@ -534,6 +618,9 @@ if __name__ == "__main__":
     test_rep3d_drops_exactly_the_register_models()
     test_rep3d_register_models_resolve_to_themselves()
     test_rep3d_otherwise_matches_rep3c()
+    test_rep4_matches_the_rebuilt_fields()
+    test_rep4_extraction_is_cached()
+    test_rep4_records_the_model_that_answered()
     test_score_reps_invokes_rep2_fuzzy_per_listing()
     test_loop_over_reps()
     test_sample_errors_deterministic()

@@ -63,9 +63,22 @@ under the same make is dropped from the table: RVR, Inspire and Ignis are
 their own vehicles, not other names for the ASX, Accord and Swift. So
 "Honda Inspire - CB-CC" stays HONDA|INSPIRE instead of becoming
 HONDA|ACCORD. Chassis codes are unchanged.
+
+Rep 4: llm_extract_match() is Rep 3d run on an LLM's reading of the listing
+instead of the raw title. The LLM copies the make, model and chassis code
+out of the title as written (no translation, no respelling, no parent
+model); the three fields are rebuilt as "MAKE MODEL - CHASSIS" and handed
+to distinct_name_match() unchanged. Year ranges and trim notes are left
+out of the fields, so they never reach the matcher. Every LLM answer is
+kept in LLM_CACHE_PATH, keyed by title, so a rerun scores the same
+extractions instead of asking again. Each entry also records which model
+answered (llm_model) and whether that was the fallback after LLM_MODEL
+declined (llm_fallback); llm_fallback_titles() lists those titles.
 """
 
 import csv
+import json
+import os
 import re
 
 from rapidfuzz import fuzz, process
@@ -528,6 +541,113 @@ def distinct_name_match(title, threshold=FUZZY_THRESHOLD):
     if len(vehicles) == 1:
         return next(iter(vehicles))
     return "NONE"
+
+
+LLM_MODEL = "claude-opus-5"
+LLM_FALLBACK_MODEL = "claude-opus-4-8"
+LLM_CACHE_PATH = "data/rep4_llm_cache.json"
+LLM_FIELDS = ("make", "model", "chassis")
+
+LLM_SYSTEM = """\
+You read one vehicle listing title from a New Zealand car parts catalogue \
+and copy three fields out of it: the make, the model and the chassis code.
+
+Copy each field exactly as the title writes it. Do not translate a name into \
+another market's name, correct its spelling, or replace it with a parent \
+model or a variant. Leave a field as an empty string when the title does not \
+state it. Year ranges, generation notes and trim descriptions go in none of \
+the fields."""
+
+LLM_SCHEMA = {
+    "type": "object",
+    "properties": {field: {"type": "string"} for field in LLM_FIELDS},
+    "required": list(LLM_FIELDS),
+    "additionalProperties": False,
+}
+
+_llm_client = None
+_llm_cache = None
+
+
+def _get_llm_cache():
+    global _llm_cache
+    if _llm_cache is None:
+        if os.path.exists(LLM_CACHE_PATH):
+            with open(LLM_CACHE_PATH, encoding="utf-8") as f:
+                _llm_cache = json.load(f)
+        else:
+            _llm_cache = {}
+    return _llm_cache
+
+
+def _save_llm_cache():
+    with open(LLM_CACHE_PATH, "w", encoding="utf-8") as f:
+        json.dump(_llm_cache, f, indent=2, sort_keys=True, ensure_ascii=False)
+        f.write("\n")
+
+
+def _ask_llm(title):
+    """Return {"make", "model", "chassis", "llm_model", "llm_fallback"} for title.
+
+    One LLM call. llm_model is the model that produced the answer;
+    llm_fallback is True when LLM_MODEL declined and LLM_FALLBACK_MODEL
+    answered instead.
+
+    Raises on a refusal or a failed call rather than answering NONE, so a
+    broken run can't pass itself off as a score.
+    """
+    global _llm_client
+    if _llm_client is None:
+        # Imported here so the other reps run without the SDK installed.
+        import anthropic
+
+        _llm_client = anthropic.Anthropic()
+
+    response = _llm_client.beta.messages.create(
+        model=LLM_MODEL,
+        max_tokens=1024,
+        betas=["server-side-fallback-2026-06-01"],
+        fallbacks=[{"model": LLM_FALLBACK_MODEL}],
+        system=LLM_SYSTEM,
+        messages=[{"role": "user", "content": title}],
+        output_config={
+            "effort": "low",
+            "format": {"type": "json_schema", "schema": LLM_SCHEMA},
+        },
+    )
+    if response.stop_reason != "end_turn":
+        raise RuntimeError(f"LLM stopped with {response.stop_reason!r} on {title!r}")
+    text = next(block.text for block in response.content if block.type == "text")
+    fields = json.loads(text)
+    answer = {field: fields[field].strip() for field in LLM_FIELDS}
+    answer["llm_model"] = response.model
+    answer["llm_fallback"] = any(
+        entry.type == "fallback_message" for entry in response.usage.iterations or []
+    )
+    return answer
+
+
+def llm_extract(title):
+    """Return the LLM's {"make", "model", "chassis"} for title, from the cache if held."""
+    cache = _get_llm_cache()
+    if title not in cache:
+        cache[title] = _ask_llm(title)
+        _save_llm_cache()
+    return cache[title]
+
+
+def llm_fallback_titles():
+    """Return the cached titles the fallback model answered, in title order."""
+    return sorted(title for title, entry in _get_llm_cache().items() if entry.get("llm_fallback"))
+
+
+def llm_extract_match(title, threshold=FUZZY_THRESHOLD):
+    """Rep 4: Rep 3d on the make, model and chassis the LLM copies out of title."""
+    fields = llm_extract(title)
+    rebuilt = " ".join(part for part in (fields["make"], fields["model"]) if part)
+    if fields["chassis"]:
+        rebuilt += f" - {fields['chassis']}"
+    return distinct_name_match(rebuilt, threshold)
 
 
 def main():
