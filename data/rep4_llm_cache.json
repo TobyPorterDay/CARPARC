@@ -1,0 +1,702 @@
+{
+  "BMW 3 Series E36 - 318i": {
+    "chassis": "E36",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "BMW",
+    "model": "3 Series"
+  },
+  "BMW 3 Series E46 - 318i": {
+    "chassis": "E46",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "BMW",
+    "model": "3 Series"
+  },
+  "BMW 5 Series E39 - 520D": {
+    "chassis": "E39",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "BMW",
+    "model": "5 Series"
+  },
+  "Chrysler 300C - LE": {
+    "chassis": "LE",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Chrysler",
+    "model": "300C"
+  },
+  "Citroen GS - GS1970-1986": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Citroen",
+    "model": "GS"
+  },
+  "Daihatsu Sirion - Other": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Daihatsu",
+    "model": "Sirion"
+  },
+  "Dodge Caliber - 07 On": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Dodge",
+    "model": "Caliber"
+  },
+  "Dodge Caliber - PM": {
+    "chassis": "PM",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Dodge",
+    "model": "Caliber"
+  },
+  "Dodge Ram 1500 - 94-01": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Dodge",
+    "model": "Ram 1500"
+  },
+  "Ford Courier - Ute 1980-1985": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Courier"
+  },
+  "Ford Escape - EP Facelift 2003-2007": {
+    "chassis": "EP",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Escape"
+  },
+  "Ford Fairlane - BA-BF 2003-2006": {
+    "chassis": "BA-BF",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Fairlane"
+  },
+  "Ford Focus - LR 2002-2005": {
+    "chassis": "LR",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Focus"
+  },
+  "Ford Futura - BA": {
+    "chassis": "BA",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Futura"
+  },
+  "Ford Kuga - TE 2012-2013": {
+    "chassis": "TE",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Kuga"
+  },
+  "Ford Laser - Other": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Laser"
+  },
+  "Ford Mondeo - MC 2011-2014": {
+    "chassis": "MC",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Mondeo"
+  },
+  "Ford Ranger - .": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Ranger"
+  },
+  "Ford Telstar - GD 1988-1992": {
+    "chassis": "GD",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Telstar"
+  },
+  "Ford Transit - Q7": {
+    "chassis": "Q7",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "Transit"
+  },
+  "Ford XR6 - FG-FGX 2008-2016": {
+    "chassis": "FG-FGX",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Ford",
+    "model": "XR6"
+  },
+  "Holden Astra - F 1995-1998": {
+    "chassis": "F",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Holden",
+    "model": "Astra"
+  },
+  "Holden Barina - Merit-Swing 1995-Present": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Holden",
+    "model": "Barina"
+  },
+  "Holden Caprice - Other": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Holden",
+    "model": "Caprice"
+  },
+  "Honda Ascot - CE4 1993-1997": {
+    "chassis": "CE4",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Honda",
+    "model": "Ascot"
+  },
+  "Honda CRV - RE4 2007-2011": {
+    "chassis": "RE4",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Honda",
+    "model": "CRV"
+  },
+  "Honda Civic - EF F/Lift": {
+    "chassis": "EF",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Honda",
+    "model": "Civic"
+  },
+  "Honda Inspire - CB-CC 1989-1995": {
+    "chassis": "CB-CC",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Honda",
+    "model": "Inspire"
+  },
+  "Honda Integra - DC": {
+    "chassis": "DC",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Honda",
+    "model": "Integra"
+  },
+  "Honda Legend - KB1": {
+    "chassis": "KB1",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Honda",
+    "model": "Legend"
+  },
+  "Hyundai Coupe - R58 2012-2015": {
+    "chassis": "R58",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Hyundai",
+    "model": "Coupe"
+  },
+  "Hyundai Lantra - 1993-1995": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Hyundai",
+    "model": "Lantra"
+  },
+  "Hyundai Santa Fe - 2000-2006": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Hyundai",
+    "model": "Santa Fe"
+  },
+  "Hyundai Sonata - KMHAF21 1998-2001": {
+    "chassis": "KMHAF21",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Hyundai",
+    "model": "Sonata"
+  },
+  "Hyundai Terracan - NM81 2001-2007": {
+    "chassis": "NM81",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Hyundai",
+    "model": "Terracan"
+  },
+  "Hyundai Tucson - Other": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Hyundai",
+    "model": "Tucson"
+  },
+  "Isuzu MU - Other": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Isuzu",
+    "model": "MU"
+  },
+  "Isuzu Wizard - UES73": {
+    "chassis": "UES73",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Isuzu",
+    "model": "Wizard"
+  },
+  "Jeep Compass - All Series": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Jeep",
+    "model": "Compass"
+  },
+  "Jeep Wrangler - JK": {
+    "chassis": "JK",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Jeep",
+    "model": "Wrangler"
+  },
+  "Jeep Wrangler - TJ": {
+    "chassis": "TJ",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Jeep",
+    "model": "Wrangler"
+  },
+  "Land Rover Discovery - Series 2 1999-2004": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Land Rover",
+    "model": "Discovery"
+  },
+  "Lexus RX350 - GGL15": {
+    "chassis": "GGL15",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Lexus",
+    "model": "RX350"
+  },
+  "Mazda Atenza - GH 2008-2012": {
+    "chassis": "GH",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mazda",
+    "model": "Atenza"
+  },
+  "Mazda Axela - BL MPS": {
+    "chassis": "BL",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mazda",
+    "model": "Axela"
+  },
+  "Mazda CX7 - ER 2006-2012": {
+    "chassis": "ER",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mazda",
+    "model": "CX7"
+  },
+  "Mazda Familia - BJFW (Late)": {
+    "chassis": "BJFW",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mazda",
+    "model": "Familia"
+  },
+  "Mazda MX5 - NB 1998-2005": {
+    "chassis": "NB",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mazda",
+    "model": "MX5"
+  },
+  "Mazda Proceed - UV 1995-1997": {
+    "chassis": "UV",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mazda",
+    "model": "Proceed"
+  },
+  "Mazda Titan - U-WGLAH SLT 1989-Present": {
+    "chassis": "U-WGLAH",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mazda",
+    "model": "Titan"
+  },
+  "Mitsubishi Carisma - DA2A 1995-2004": {
+    "chassis": "DA2A",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Carisma"
+  },
+  "Mitsubishi Chariot - N33W 2nd Gen: 1991-1997": {
+    "chassis": "N33W",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Chariot"
+  },
+  "Mitsubishi Delica - Other": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Delica"
+  },
+  "Mitsubishi Dion - CR9W 2000-2006": {
+    "chassis": "CR9W",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Dion"
+  },
+  "Mitsubishi Emmeraude - E52A 1992-1997": {
+    "chassis": "E52A",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Emmeraude"
+  },
+  "Mitsubishi Eterna - E53A 1988-1997": {
+    "chassis": "E53A",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Eterna"
+  },
+  "Mitsubishi FTO - DE2A 1994-2000": {
+    "chassis": "DE2A",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "FTO"
+  },
+  "Mitsubishi L300 - P01V 1987-2012": {
+    "chassis": "P01V",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "L300"
+  },
+  "Mitsubishi Lancer - C62A 1988-1992": {
+    "chassis": "C62A",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Lancer"
+  },
+  "Mitsubishi Lancer - CK4A 1994-1998": {
+    "chassis": "CK4A",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Lancer"
+  },
+  "Mitsubishi Outlander - GF8W 2012-Present": {
+    "chassis": "GF8W",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Outlander"
+  },
+  "Mitsubishi Pajero - V46W 1991-1999": {
+    "chassis": "V46W",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "Pajero"
+  },
+  "Mitsubishi RVR - N28W 1991-1997": {
+    "chassis": "N28W",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Mitsubishi",
+    "model": "RVR"
+  },
+  "Nissan Lucino - B14": {
+    "chassis": "B14",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Nissan",
+    "model": "Lucino"
+  },
+  "Nissan Murano - Z50 2002-2007 (Generation I)": {
+    "chassis": "Z50",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Nissan",
+    "model": "Murano"
+  },
+  "Nissan Presage - U31": {
+    "chassis": "U31",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Nissan",
+    "model": "Presage"
+  },
+  "Nissan Qashqai - J10 2010-2013": {
+    "chassis": "J10",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Nissan",
+    "model": "Qashqai"
+  },
+  "Nissan Serena - C24 1999-2004": {
+    "chassis": "C24",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Nissan",
+    "model": "Serena"
+  },
+  "Nissan Silvia - S13": {
+    "chassis": "S13",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Nissan",
+    "model": "Silvia"
+  },
+  "Nissan Skyline - V37 2014-": {
+    "chassis": "V37",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Nissan",
+    "model": "Skyline"
+  },
+  "Nissan Tiida - C11 2004-2012": {
+    "chassis": "C11",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Nissan",
+    "model": "Tiida"
+  },
+  "Nissan Vanette - C22 1988-1994": {
+    "chassis": "C22",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Nissan",
+    "model": "Vanette"
+  },
+  "Renault Renault All Series - All Series": {
+    "chassis": "All Series",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Renault",
+    "model": "All Series"
+  },
+  "Subaru Impreza - 1st Gen: GF3 1992-2000": {
+    "chassis": "GF3",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Subaru",
+    "model": "Impreza"
+  },
+  "Subaru Legacy - 4th Gen: BP5 2003-2009": {
+    "chassis": "BP5",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Subaru",
+    "model": "Legacy"
+  },
+  "Suzuki Escudo - Other": {
+    "chassis": "",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Suzuki",
+    "model": "Escudo"
+  },
+  "Suzuki Swift - ZC83S": {
+    "chassis": "ZC83S",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Suzuki",
+    "model": "Swift"
+  },
+  "Toyota Allex - ZZE122 2000-2006": {
+    "chassis": "ZZE122",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Allex"
+  },
+  "Toyota Avalon - MCX10 2005-2006": {
+    "chassis": "MCX10",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Avalon"
+  },
+  "Toyota Caldina - AT191 1993-1997": {
+    "chassis": "AT191",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Caldina"
+  },
+  "Toyota Caldina - AZT241 2002-2007": {
+    "chassis": "AZT241",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Caldina"
+  },
+  "Toyota Ceres - AE101 1992-1995": {
+    "chassis": "AE101",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Ceres"
+  },
+  "Toyota Corolla - AE80 1983-1986": {
+    "chassis": "AE80",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Corolla"
+  },
+  "Toyota Corolla 11 - EL30": {
+    "chassis": "EL30",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Corolla"
+  },
+  "Toyota Hiace - LH125": {
+    "chassis": "LH125",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Hiace"
+  },
+  "Toyota Hilux - LN172 1998": {
+    "chassis": "LN172",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Hilux"
+  },
+  "Toyota Hilux - RZN149 1998-2004": {
+    "chassis": "RZN149",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Hilux"
+  },
+  "Toyota Hilux - VZN165 2002": {
+    "chassis": "VZN165",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Hilux"
+  },
+  "Toyota Hilux - YN65": {
+    "chassis": "YN65",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Hilux"
+  },
+  "Toyota Ipsum - ACM21 2001-2006": {
+    "chassis": "ACM21",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Ipsum"
+  },
+  "Toyota Mr2 - SW20 1990-1994": {
+    "chassis": "SW20",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Mr2"
+  },
+  "Toyota Passo - KGC10 2004-2010": {
+    "chassis": "KGC10",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Passo"
+  },
+  "Toyota Rav4 - ZSA42": {
+    "chassis": "ZSA42",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Rav4"
+  },
+  "Toyota Sprinter - AE110": {
+    "chassis": "AE110",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Sprinter"
+  },
+  "Toyota Sprinter - AE111": {
+    "chassis": "AE111",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Sprinter"
+  },
+  "Toyota Starlet - EP80": {
+    "chassis": "EP80",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Starlet"
+  },
+  "Toyota Supra - JZA80": {
+    "chassis": "JZA80",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Supra"
+  },
+  "Toyota Surf - RZN130": {
+    "chassis": "RZN130",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Surf"
+  },
+  "Toyota Will - NCP19": {
+    "chassis": "NCP19",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Will"
+  },
+  "Toyota Yaris - NCP10": {
+    "chassis": "NCP10",
+    "llm_fallback": false,
+    "llm_model": "claude-opus-5",
+    "make": "Toyota",
+    "model": "Yaris"
+  }
+}
