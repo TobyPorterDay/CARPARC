@@ -8,9 +8,8 @@ the JDM name, the export name and the chassis code all disagree with each other.
 Returning `None` is a first-class outcome.
 
 **Status: pre-v0.1.0.** Instrument built, corpus collected, gold set drawn and
-labelled, 100 dev / 100 held-out. Week 2 in progress: Reps 1 and 2 measured,
-Reps 3–5 outstanding. TODO: numbers for alias/chassis, LLM extraction and the
-hybrid rep.
+labelled, 100 dev / 100 held-out. Week 2 in progress: Reps 1–3 measured,
+Reps 4–5 outstanding. TODO: numbers for LLM extraction and the hybrid rep.
 
 ## The two functions
 
@@ -79,6 +78,12 @@ python3 label_vehicles.py         # labels the dev set
 | — | constant-label floor (part_type) | 7/40 (0.17) | 40 |
 | 1 | contains model anywhere | 91/100 (0.91) | 100 |
 | 2 | fuzzy match, make and model scored separately, threshold 95 | 89/100 (0.89) | 100 |
+| 3 | alias table (top 40 vehicles, 39.6% of fleet) name match first, chassis code only when no name matches; alias names that are separate register models dropped | 94/100 (0.94) | 100 |
+
+The dev gold changed between Rep 2 and Rep 3: labels were split into model and
+variant, and three BMW rows moved to the parent line (3 Series, 5 Series).
+Reps 1 and 2 above were scored on the earlier labels. On the current gold they
+score 94/100 and 92/100, so Rep 3 ties Rep 1 rather than beating it.
 
 Reported as point estimates until small-n results make intervals necessary.
 

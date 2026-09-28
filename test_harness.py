@@ -41,6 +41,7 @@ def test_reps_registry_accessible():
     assert "rep3_alias" in harness.REPS
     assert "rep3b_chassis" in harness.REPS
     assert "rep3c_name_first" in harness.REPS
+    assert "rep3d_distinct_names" in harness.REPS
     assert harness.REPS["stub"]("anything") is None
     assert harness.REPS["classify"] is clf.classify
     assert harness.REPS["exact_match"] is vclf.match
@@ -48,6 +49,7 @@ def test_reps_registry_accessible():
     assert harness.REPS["rep3_alias"] is vclf.alias_match
     assert harness.REPS["rep3b_chassis"] is vclf.chassis_match
     assert harness.REPS["rep3c_name_first"] is vclf.name_first_match
+    assert harness.REPS["rep3d_distinct_names"] is vclf.distinct_name_match
 
 
 def test_rep2_fuzzy_is_called_through_registry():
@@ -193,6 +195,55 @@ def test_rep3c_chassis_only_when_no_name_matches():
     assert classify_fn("Nothing matches here at all") == "NONE"
 
 
+def test_rep3d_drops_exactly_the_register_models():
+    # Counted 28/09 against the register: of every JDM and export name in
+    # the alias table, only these three are models the register holds
+    # separately under the same make. A row's own name ("Corolla" on the
+    # Corolla row) is never dropped.
+    assert vclf.register_model_aliases() == {
+        ("MITSUBISHI", "RVR"),
+        ("HONDA", "INSPIRE"),
+        ("SUZUKI", "IGNIS"),
+    }
+
+
+def test_rep3d_register_models_resolve_to_themselves():
+    # Titles are absent from both gold sets. Under 3c each of these went to
+    # the vehicle the alias table gave the name to; under 3d the name is its
+    # own register model, even with that vehicle's chassis code (GA4W is an
+    # ASX code, CP2 an Accord code), since the name is read first.
+    classify_fn = harness.REPS["rep3d_distinct_names"]
+    cases = [
+        ("Mitsubishi RVR - GA4W", "MITSUBISHI|ASX", "MITSUBISHI|RVR"),
+        ("Honda Inspire - CP2", "HONDA|ACCORD", "HONDA|INSPIRE"),
+        ("Suzuki Ignis - HT51S", "SUZUKI|SWIFT", "SUZUKI|IGNIS"),
+    ]
+    for title, rep3c, rep3d in cases:
+        assert vclf.name_first_match(title) == rep3c, title
+        assert classify_fn(title) == rep3d, title
+
+
+def test_rep3d_otherwise_matches_rep3c():
+    # Titles are absent from both gold sets. Every other alias name, the
+    # fixed-name mapping and the chassis-code last resort are unchanged.
+    classify_fn = harness.REPS["rep3d_distinct_names"]
+    for title in [
+        "Mitsubishi Airtrek - CU2W",
+        "Toyota Vitz - NCP10",
+        "Mazda Mazda3 - BK",
+        "Honda CRV - RD1",
+        "Suzuki Cultus - HT51S",
+        "Mitsubishi ASX - GA4W",
+        "Toyota Corolla - ACA31",
+        "Ford XR8 - BA",
+        "Subaru - BR9",
+        "Nothing matches here at all",
+    ]:
+        assert classify_fn(title) == vclf.name_first_match(title), title
+    # Rep 3a's table is untouched.
+    assert vclf.alias_match("Mitsubishi RVR - GA4W") == "MITSUBISHI|ASX"
+
+
 def test_score_reps_invokes_rep2_fuzzy_per_listing():
     # score_reps() must call the rep once for every gold listing, not skip it
     # or reuse a cached prediction. Counting calls proves the function ran.
@@ -232,6 +283,7 @@ def test_loop_over_reps():
         "rep3_alias": 0,
         "rep3b_chassis": 0,
         "rep3c_name_first": 0,
+        "rep3d_distinct_names": 0,
     }
 
     con = duckdb.connect()
@@ -479,6 +531,9 @@ if __name__ == "__main__":
     test_rep3_alias_returns_one_fixed_name_per_vehicle()
     test_rep3c_name_outranks_the_chassis()
     test_rep3c_chassis_only_when_no_name_matches()
+    test_rep3d_drops_exactly_the_register_models()
+    test_rep3d_register_models_resolve_to_themselves()
+    test_rep3d_otherwise_matches_rep3c()
     test_score_reps_invokes_rep2_fuzzy_per_listing()
     test_loop_over_reps()
     test_sample_errors_deterministic()

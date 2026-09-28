@@ -56,6 +56,13 @@ table, then Rep 2); only when that finds nothing does the chassis code get
 a say, and then only when it points at a single vehicle. So "Toyota Allex -
 ZZE122" stays TOYOTA|ALLEX, but "Ford XR6 - FG-FGX", which names no model,
 is FORD|FALCON.
+
+Rep 3d: distinct_name_match() is Rep 3c with a smaller alias table. A JDM
+or export name that the register (CANONICAL_PATH) holds as a separate model
+under the same make is dropped from the table: RVR, Inspire and Ignis are
+their own vehicles, not other names for the ASX, Accord and Swift. So
+"Honda Inspire - CB-CC" stays HONDA|INSPIRE instead of becoming
+HONDA|ACCORD. Chassis codes are unchanged.
 """
 
 import csv
@@ -197,11 +204,12 @@ def _alias_names(field):
     return names
 
 
-def load_aliases(path):
+def load_aliases(path, drop=frozenset()):
     """Return {make_key: {name_key: "MAKE|MODEL"}} from the alias table.
 
     MODEL is the first name of the merged mvr_model. A name that points at
-    two different vehicles under one make is ambiguous and left out.
+    two different vehicles under one make is ambiguous and left out. A JDM or
+    export name whose (make_key, name_key) is in drop is left out too.
     """
     aliases = {}
     ambiguous = set()
@@ -210,11 +218,14 @@ def load_aliases(path):
             make = row["make"].strip().upper()
             merged = row["mvr_model"].split(";")
             label = f"{make}|{merged[0].strip().upper()}"
-            names = merged + _alias_names(row["jdm_name"]) + _alias_names(row["export_name"])
+            alias_names = _alias_names(row["jdm_name"]) + _alias_names(row["export_name"])
+            own_names = {_key(name) for name in merged}
             by_name = aliases.setdefault(_key(make), {})
-            for name in names:
+            for name in merged + alias_names:
                 name_key = _key(name)
                 if not name_key:
+                    continue
+                if name_key not in own_names and (_key(make), name_key) in drop:
                     continue
                 if by_name.get(name_key, label) != label:
                     ambiguous.add((_key(make), name_key))
@@ -231,11 +242,14 @@ def _get_aliases():
     return _aliases
 
 
-def alias_lookup(title):
-    """Return "MAKE|MODEL" for the longest alias name in title, else None."""
+def alias_lookup(title, aliases=None):
+    """Return "MAKE|MODEL" for the longest alias name in title, else None.
+
+    aliases defaults to Rep 3a's table.
+    """
     windows = set(_windows(title))
     best = None
-    for make_key, by_name in _get_aliases().items():
+    for make_key, by_name in (aliases or _get_aliases()).items():
         if make_key not in windows:
             continue
         for name_key, label in by_name.items():
@@ -244,10 +258,10 @@ def alias_lookup(title):
     return best[1] if best else None
 
 
-def fixed_label(label):
+def fixed_label(label, aliases=None):
     """Return label under its vehicle's fixed name, or unchanged if not in the table."""
     make, _, model = label.partition("|")
-    return _get_aliases().get(_key(make), {}).get(_key(model), label)
+    return (aliases or _get_aliases()).get(_key(make), {}).get(_key(model), label)
 
 
 def alias_match(title, threshold=FUZZY_THRESHOLD):
@@ -460,6 +474,54 @@ def name_first_match(title, threshold=FUZZY_THRESHOLD):
     since there is no name to settle it.
     """
     label = alias_match(title, threshold)
+    if label != "NONE":
+        return label
+    vehicles = chassis_vehicles(title)
+    if len(vehicles) == 1:
+        return next(iter(vehicles))
+    return "NONE"
+
+
+def register_model_aliases(path=ALIAS_PATH, canonical_path=CANONICAL_PATH):
+    """Return {(make_key, name_key)} for the JDM and export names Rep 3d drops.
+
+    These are names the alias table gives a vehicle that the register holds
+    as a separate model under the same make (Mitsubishi RVR, given to the
+    ASX). A name that is one of the row's own mvr_model names is not
+    dropped: the Corolla row's "Corolla" is the Corolla.
+    """
+    register = {(_key(make), _key(model)) for make, model, _ in load_canonical(canonical_path)}
+    dropped = set()
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            make_key = _key(row["make"])
+            own_names = {_key(name) for name in row["mvr_model"].split(";")}
+            for name in _alias_names(row["jdm_name"]) + _alias_names(row["export_name"]):
+                name_key = _key(name)
+                if name_key and name_key not in own_names and (make_key, name_key) in register:
+                    dropped.add((make_key, name_key))
+    return dropped
+
+
+_distinct_aliases = None
+
+
+def _get_distinct_aliases():
+    global _distinct_aliases
+    if _distinct_aliases is None:
+        _distinct_aliases = load_aliases(ALIAS_PATH, drop=register_model_aliases())
+    return _distinct_aliases
+
+
+def distinct_name_match(title, threshold=FUZZY_THRESHOLD):
+    """Rep 3d: Rep 3c with register models dropped from the alias table.
+
+    The name match is Rep 3a's (the table, then Rep 2, then the fixed name),
+    run on the smaller table; the chassis code is read only when it finds
+    nothing, exactly as in Rep 3c.
+    """
+    aliases = _get_distinct_aliases()
+    label = alias_lookup(title, aliases) or fixed_label(fuzzy_match(title, threshold), aliases)
     if label != "NONE":
         return label
     vehicles = chassis_vehicles(title)

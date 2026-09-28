@@ -913,34 +913,45 @@ scores is Rep 3's result — the deterministic ceiling Rep 4 is measured against
 - Written at: 06:59 on 25/09.
 
 **Result**
-- Observed score: 
-- Variant score: 
-- Signed error (observed − predicted): 
-- Measured at: 
+- Observed score: 94/100
+- Variant score: 0/5
+- Signed error (observed − predicted): 0pp
+- Measured at: 07:49 on 28/09
 
-**Reconciliation:** 92 + ___ − ___ = ___
-- Rows fixed: 
-- Rows broken: 
+**Reconciliation:** 92 + 2 − 0 = 94
+- Rows fixed: Honda Inspire - CB-CC 1989-1995, Mitsubishi RVR - N28W 1991-1997
+- Rows broken: None
 
 **Remaining errors** (all read)
 | Listing | Gold | Predicted |
 |---|---|---|
-|  |  |  |
+| Mazda MX5 - NB 1998-2005 | MAZDA\|MX5 | MAZDA\|MX-5 |
+| Toyota Mr2 - SW20 1990-1994 | TOYOTA\|MR2 | TOYOTA\|MR 2 |
+| Toyota Surf - RZN130 | TOYOTA\|4RUNNER | NONE |
+| Mitsubishi Emmeraude - E52A 1992-1997 | MITSUBISHI\|GALANT | NONE |
+| Dodge Ram 1500 - 94-01 | DODGE\|RAM | RAM\|1500 |
+| Mitsubishi FTO - DE2A 1994-2000 | MITSUBISHI\|FTO | MITSUBISHI\|2000 |
 
 **Error categories**
 | # | Category | Survivor / New | Count | Example |
 |---|---|---|---|---|
-|  |  |  |  |  |
+| 1 | Punctuation collision: prediction and gold are the same vehicle spelled differently, and the tie-break picked the other spelling | Survivor | 2 | Mazda MX5 - NB 1998-2005, gold=MAZDA\|MX5, predicted=MAZDA\|MX-5 |
+| 2 | Listing uses the JDM name, the register uses the export name — no string match is possible | Survivor | 2 | Toyota Surf - RZN130, gold=TOYOTA\|4RUNNER, predicted=NONE |
+| 4 | A make named inside the listing won the tie-break over the actual make | Survivor | 1 | Dodge Ram 1500 - 94-01, gold=DODGE\|RAM, predicted=RAM\|1500 |
+| 5 | A number from the year range matched a canonical model that is itself a number | Survivor | 1 | Mitsubishi FTO - DE2A 1994-2000, gold=MITSUBISHI\|FTO, predicted=MITSUBISHI\|2000 |
+Uncategorised / other: 0
+
+Balances: 8 survivors from Rep 3c minus the 2 category 7 fixes (Inspire, RVR) = 6, + 0 new = 6. No new categories; category 7 is cleared.
 
 **Explanation**
-- Why the gap: 
-- What this says about my model of the system: 
-- What I'd predict next, and why: 
+- Why the gap: None, the two errors from rep 3c were fixed with no rows broken.
+- What this says about my model of the system: Spelling, missing data, and parsing rules are causing the remaingin errors.
+- What I'd predict next, and why: 98/100, using an LLM workflow to match model names against the canonical titles should solve these issues.
 
 **Rep 3 result — the deterministic ceiling**
-- Final score: ___/100 (Rep 1: 94, Rep 2: 92, Rep 3a: 91, 3b: 87, 3c: 92, 3d: ___)
-- Fleet coverage of the alias table: 
-- Why the ceiling sits where it does (one or two lines): 
+- Final score: 94/100 (Rep 1: 94, Rep 2: 92, Rep 3a: 91, 3b: 87, 3c: 92, 3d: 94)
+- Fleet coverage of the alias table: 39.6%
+- Why the ceiling sits where it does (one or two lines): The iterations after rep 1 were focused on fixing other errors than the six remaining ones. Two of the errors are a result of using rep 2 as the fall back.
 
 ---
 
@@ -959,7 +970,7 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 2 | 3a | 97% | 91% | -6pp |
 | 2 | 3b | 95% | 87% | -8pp |
 | 2 | 3c | 94% | 92% | -2pp |
-|  |  |  |  |  |
+| 2 | 3d | 94% | 94% | 0pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
