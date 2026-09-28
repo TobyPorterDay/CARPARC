@@ -955,6 +955,65 @@ Balances: 8 survivors from Rep 3c minus the 2 category 7 fixes (Inspire, RVR) = 
 
 ---
 
+### Rep 4 — LLM Extraction to canonical lookup
+
+**Date:** 28/09
+
+**Initial setup**
+- Data:            data/gold_vehicles_dev.csv, 100 rows, Make/Model/Variant (commit: 311d267)
+- System:          rep4_llm_extract (vehicle_classify.py): LLM extracts make, model and
+                   chassis from the title; its output is passed to the rep3d matcher.
+                   Model: claude-opus-5 (fallback claude-opus-4-8 on a refusal), effort low,
+                   JSON schema output; no temperature setting (Opus 5 does not accept one).
+                   Prompt: LLM_SYSTEM in vehicle_classify.py (commit: 311d267).
+                   Input: title only. Replies cached per title in data/rep4_llm_cache.json.
+                   Refused or cut-off reply → the run stops with an error (no NONE).
+- Metric:          key accuracy on MAKE|MODEL, correct / n, harness.score(); variant
+                   accuracy on the 5 rows with a gold variant, harness.score_variant()
+- Baseline to beat: Rep 3d, 94/100 (0.94) — the deterministic ceiling
+
+**The one specific change**
+- LLM extracts the make, model and chassis from the title before being passed to the matcher.
+
+**Which rows the change can reach** — counted before running
+- Rep 3d errors it should fix (listings): Mitsubishi FTO - DE2A 1994-2000, Toyota Surf - RZN130, Dodge Ram 1500 - 94-01, Mitsubishi Emmeraude - E52A 1992-1997
+- Currently correct rows it could break (listings): Mazda Atenza - GH 2008-2012, Mazda Axela - BL MPS, Toyota Yaris - NCP10, Toyota Rav4 - ZSA42, Toyota Corolla - AE80 1983-1986, Toyota Corolla 11 - EL30, Mitsubishi Outlander - GF8W 2012-Present, Mitsubishi RVR - N28W 1991-1997, Subaru Legacy - 4th Gen: BP5 2003-2009, Nissan Tiida - C11 2004-2012, Hyundai Tucson - Other, Honda Inspire - CB-CC 1989-1995, Suzuki Swift - ZC83S, Toyota Sprinter - AE110, Toyota Sprinter - AE111, Toyota Allex - ZZE122 2000-2006, Toyota Ceres - AE101 1992-1995, Ford Futura - BA, Ford Fairlane - BA-BF 2003-2006, BMW 3 Series E36 - 318i, BMW 3 Series E46 - 318i, BMW 5 Series E39 - 520D, Ford XR6 - FG-FGX 2008-2016
+
+**Prediction** — written before running
+- Predicted score: 75/100
+- Reasoning (one or two lines): 94 + 4 - 23 = 75
+- Written at: 04:28 on 29/09
+
+**Result**
+- Observed score:
+- Variant score:
+- Signed error (observed − predicted):
+- Measured at:
+
+**Reconciliation:** 94 + fixed − broken = 
+- Rows fixed:
+- Rows broken:
+
+**Remaining errors** (all read)
+| Listing | Gold | Predicted |
+|---|---|---|
+|  |  |  |
+
+**Error categories**
+| # | Category | Survivor / New | Count | Example |
+|---|---|---|---|---|
+|  |  |  |  |  |
+Uncategorised / other:
+
+Balances: 
+
+**Explanation**
+- Why the gap:
+- What this says about my model of the system:
+- What I'd predict next, and why:
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
