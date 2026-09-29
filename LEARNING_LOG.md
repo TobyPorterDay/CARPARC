@@ -1061,37 +1061,49 @@ Balances: 6 survivors from Rep 3d minus the 1 category 5 fix (FTO) = 5, + 0 new 
 - Written at: 06:23 on 30/09.
 
 **Result**
-- Observed score: 
-- Variant score: 
-- Observed precision / coverage: / 
-- Signed error (observed − predicted): 
-- Measured at: 
+- Observed score: 93/100
+- Variant score: 0/5
+- Observed precision 92/92 coverage: 92/100 
+- Signed error (observed − predicted): +1pp (score: 92/100 → 93/100)
+- Signed error, precision: +2.1pp (92/94 = 97.9% → 92/92 = 100%)
+- Signed error, coverage: −2pp (94/100 → 92/100)
+- Rep 4 wrong answers turned to NONE: predicted 1/3 (Dodge) → observed 3/3 (Dodge, MX5, MR2)
+- Measured at: 06:25 on 30/09.
 
 **Calibration result**
-- Rows at confidence 1.0: observed count = ; observed correct = /
-- Rows below 0.9 (abstained): observed count = ; correct if they had answered = /
+- Rows at confidence 1.0: observed count = 92; observed correct = 92/92
+- Rows below 0.9 (abstained): observed count = 8; correct if they had answered = 3/8
 
-**Reconciliation:** 95 + ? − ? = ?
-- Rows fixed: 
-- Rows broken: 
+**Reconciliation:** 95 + 0 − 2 = 93
+- Rows fixed: None
+- Rows broken: Honda Inspire - CB-CC 1989-1995, Land Rover Discovery - Series 2 1999-2004
 
 **Remaining errors** (all read)
 | Listing | Gold | Predicted |
 |---|---|---|
-|  |  |  |
+| Mazda MX5 - NB 1998-2005 | MAZDA\|MX5 | NONE (Rep 4: MAZDA\|MX-5, confidence 0.5) |
+| Toyota Mr2 - SW20 1990-1994 | TOYOTA\|MR2 | NONE (Rep 4: TOYOTA\|MR 2, confidence 0.5) |
+| Toyota Surf - RZN130 | TOYOTA\|4RUNNER | NONE |
+| Mitsubishi Emmeraude - E52A 1992-1997 | MITSUBISHI\|GALANT | NONE |
+| Dodge Ram 1500 - 94-01 | DODGE\|RAM | NONE (Rep 4: RAM\|1500, confidence 0.5) |
+| Honda Inspire - CB-CC 1989-1995 | HONDA\|INSPIRE | NONE (Rep 4: HONDA\|INSPIRE, confidence 0.5) |
+| Land Rover Discovery - Series 2 1999-2004 | LAND ROVER\|DISCOVERY | NONE (Rep 4: LAND ROVER\|DISCOVERY, confidence 0.25) |
 
 **Error categories**
 | # | Category | Survivor / New | Count | Example |
 |---|---|---|---|---|
-|  |  |  |  |  |
-Uncategorised / other: 
+| 1 | Punctuation collision: prediction and gold are the same vehicle spelled differently, and the tie-break picked the other spelling — now abstained on, since the two spellings tie | Survivor | 2 | Mazda MX5 - NB 1998-2005, gold=MAZDA\|MX5, predicted=NONE (Rep 4: MAZDA\|MX-5) |
+| 2 | Listing uses the JDM name, the register uses the export name — no string match is possible | Survivor | 2 | Toyota Surf - RZN130, gold=TOYOTA\|4RUNNER, predicted=NONE |
+| 4 | A make named inside the listing won the tie-break over the actual make — now abstained on, since the two makes tie | Survivor | 1 | Dodge Ram 1500 - 94-01, gold=DODGE\|RAM, predicted=NONE (Rep 4: RAM\|1500) |
+| 9 | The right answer tied with a spurious candidate — part of the chassis code or the make's own words matched a register model — so confidence fell below 0.9 and the correct label was dropped | New | 2 | Honda Inspire - CB-CC 1989-1995, gold=HONDA\|INSPIRE, predicted=NONE (Rep 4: HONDA\|INSPIRE; "CB" matched HONDA\|CB) |
+Uncategorised / other: 0
 
-Balances: 
+Balances: 5 survivors from Rep 4 minus 0 fixes = 5, + 2 new (category 9: Inspire, Discovery) = 7. Categories 1 and 4 are still errors but now answer NONE instead of a wrong label.
 
 **Explanation**
-- Why the gap: 
-- What this says about my model of the system: 
-- What I'd predict next, and why: 
+- Why the gap: Only two of the correct rows I predicted to break did. I didn't expect MX5 and MR2 to abstain. The Renault All Series listing is NONE from the gold.
+- What this says about my model of the system: I assumed MX5 and MR2 would get a clear choice. They scored as ties even though the error is a spelling issue. The confidence predictions below 0.9 can't be judged accuratley because the groups are to small (1/4 at 0.5 and 1 at 0.25).
+- What I'd predict next, and why: 98/100. When the system's confidence is less that 0.9, an LLM call will be used to improve it.
 
 ---
 
@@ -1112,7 +1124,9 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 2 | 3c | 94% | 92% | -2pp |
 | 2 | 3d | 94% | 94% | 0pp |
 | 2 | 4 | 75% | 95% | +20pp |
-|  |  |  |  |  |
+| 2 | 5 | 92% | 93% | +1pp |
+| 2 | 5 precision | 97.9% | 100% | +2.1pp |
+| 2 | 5 coverage | 94% | 92% | -2pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
