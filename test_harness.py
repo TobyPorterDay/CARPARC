@@ -4,6 +4,9 @@
 * REPS registry ("stub" always None, "classify" the real classifier) is
   accessible and scores correctly when run through score_reps()
 * label_counts()'s (gold, predicted) pairs agree with score()'s totals
+* abstained_errors() lists the baseline's wrong rows a later rep answers NONE
+* score_answered() scores precision on answered rows only, and coverage
+* write_confidence() records every row's confidence, with gold, to a CSV
 * Split vehicle gold (Make, Model, Variant) is scored on MAKE|MODEL, with
   variants scored separately on the rows that have one
 * Keys are matched as plain strings, and where the register merges names
@@ -51,6 +54,7 @@ def test_reps_registry_accessible():
     assert harness.REPS["rep3c_name_first"] is vclf.name_first_match
     assert harness.REPS["rep3d_distinct_names"] is vclf.distinct_name_match
     assert harness.REPS["rep4_llm_extract"] is vclf.llm_extract_match
+    assert harness.REPS["rep5_abstain"] is vclf.abstain_match
 
 
 def test_rep2_fuzzy_is_called_through_registry():
@@ -317,6 +321,45 @@ def test_rep4_records_the_model_that_answered():
     assert first["model"] == "Odyssey"
 
 
+def test_rep5_confidence_counts_the_vehicles_in_contention():
+    # Titles are absent from both gold sets. One vehicle at the deciding
+    # step is 1.0, whichever step decided; a tie between two is 0.5.
+    assert vclf.distinct_name_confidence("Honda Odyssey - RB1") == ("HONDA|ODYSSEY", 1.0)
+    assert vclf.distinct_name_confidence("Mitsubishi Airtrek - CU2W") == ("MITSUBISHI|OUTLANDER", 1.0)
+    assert vclf.distinct_name_confidence("Ford XR8 - BA") == ("FORD|FALCON", 1.0)
+    assert vclf.distinct_name_confidence("Mazda MX5 - NA") == ("MAZDA|MX-5", 0.5)
+    assert vclf.distinct_name_confidence("Nothing matches here at all") == ("NONE", 0.0)
+
+
+def test_rep5_label_is_rep3ds():
+    # The confidence step never changes the label it rates.
+    for title in [
+        "Honda Odyssey - RB1",
+        "Mitsubishi Airtrek - CU2W",
+        "Toyota Vitz - NCP10",
+        "Mazda Mazda3 - BK",
+        "Ford XR8 - BA",
+        "Mazda MX5 - NA",
+        "Subaru - BR9",
+    ]:
+        assert vclf.distinct_name_confidence(title)[0] == vclf.distinct_name_match(title), title
+
+
+def test_rep5_abstains_below_the_threshold():
+    confident, tied = "Honda Odyssey - RB1 2003-2008", "Mazda MX5 - NA 1989-1997"
+    original = _fake_llm({
+        confident: {"make": "Honda", "model": "Odyssey", "chassis": "RB1"},
+        tied: {"make": "Mazda", "model": "MX5", "chassis": "NA"},
+    })
+    try:
+        assert vclf.llm_extract_match(tied) == "MAZDA|MX-5"
+        assert vclf.abstain_match(tied) == "NONE"
+        assert vclf.abstain_match(tied, min_confidence=0.5) == "MAZDA|MX-5"
+        assert vclf.abstain_match(confident) == "HONDA|ODYSSEY"
+    finally:
+        vclf.llm_extract = original
+
+
 def test_score_reps_invokes_rep2_fuzzy_per_listing():
     # score_reps() must call the rep once for every gold listing, not skip it
     # or reuse a cached prediction. Counting calls proves the function ran.
@@ -348,8 +391,8 @@ def test_loop_over_reps():
     # stub always returns None, so it scores 0. exact_match is a vehicle
     # (Make|Model) rep scored here against the part_type gold set, so none of
     # its predictions can ever equal a part_type label — it also scores 0.
-    # rep2_fuzzy, the rep3 variants and rep4 are the same kind of vehicle rep,
-    # so they score 0 for the same reason. rep4's LLM is faked here.
+    # rep2_fuzzy, the rep3 variants, rep4 and rep5 are the same kind of vehicle rep,
+    # so they score 0 for the same reason. The LLM behind rep4 and rep5 is faked here.
     expected = {
         "stub": 0,
         "classify": 3,
@@ -360,6 +403,7 @@ def test_loop_over_reps():
         "rep3c_name_first": 0,
         "rep3d_distinct_names": 0,
         "rep4_llm_extract": 0,
+        "rep5_abstain": 0,
     }
 
     con = duckdb.connect()
@@ -436,6 +480,61 @@ def test_label_counts_all_correct():
 
     assert all(gold == predicted for gold, predicted, _ in rows), "no confusions expected"
     assert sum(count for _, _, count in rows) == 40
+
+
+def test_abstained_errors_lists_only_wrong_rows_turned_to_none():
+    con = duckdb.connect()
+    harness.load_gold(con)
+    (a, gold_a), (b, _), (c, _), (d, _) = con.execute(
+        "SELECT Listing, Label FROM gold ORDER BY Listing LIMIT 4"
+    ).fetchall()
+    baseline = [(a, gold_a), (b, "Not a label"), (c, "Not a label"), (d, "NONE")]
+    after = [(a, "NONE"), (b, "NONE"), (c, "Still not a label"), (d, "NONE")]
+
+    # a was right (a break, not an error caught), c still guesses, d was
+    # already NONE. Only b is a wrong answer changed to NONE.
+    gold_b = dict(con.execute("SELECT Listing, Label FROM gold").fetchall())[b]
+    assert harness.abstained_errors(con, baseline, after) == [(b, gold_b, "Not a label")]
+
+
+def test_score_answered_leaves_none_out_of_precision():
+    con = duckdb.connect()
+    harness.load_gold(con)
+    (a, gold_a), (b, _), (c, _), (d, _) = con.execute(
+        "SELECT Listing, Label FROM gold ORDER BY Listing LIMIT 4"
+    ).fetchall()
+    predictions = [(a, gold_a), (b, "Not a label"), (c, "NONE"), (d, None)]
+
+    # Two answered (a right, b wrong); c and d are not answers.
+    assert harness.score_answered(con, predictions) == ((1, 2, 0.5), (2, 4, 0.5))
+    assert harness.score_answered(con, [(c, "NONE")]) == ((0, 0, None), (0, 1, 0.0))
+
+
+def test_write_confidence_records_every_row(tmp_path):
+    con = duckdb.connect()
+    harness.load_gold(con)
+    (a, gold_a), (b, gold_b) = con.execute(
+        "SELECT Listing, Label FROM gold ORDER BY Listing LIMIT 2"
+    ).fetchall()
+    rows = [(b, gold_b, 0.5, "NONE"), (a, gold_a, 1.0, gold_a)]
+    path = tmp_path / "confidence.csv"
+
+    harness.write_confidence(con, rows, path)
+
+    with open(path, newline="", encoding="utf-8") as f:
+        written = list(csv.DictReader(f))
+    assert [(r["Listing"], r["Gold"], r["Label"], r["Confidence"], r["Predicted"], r["Correct"])
+            for r in written] == [
+        (a, gold_a, gold_a, "1.0", gold_a, "True"),
+        (b, gold_b, gold_b, "0.5", "NONE", "False"),
+    ]
+
+
+def test_confidence_is_recorded_for_rep5():
+    assert harness.CONFIDENCE["rep5_abstain"] is vclf.rep5_confidence
+    assert harness.confidence_path("rep5_abstain", "data/gold_vehicles_dev.csv") == (
+        "data/rep5_abstain_confidence_gold_vehicles_dev.csv"
+    )
 
 
 def test_stub_predicts_none_for_every_listing():

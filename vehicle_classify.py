@@ -74,6 +74,13 @@ kept in LLM_CACHE_PATH, keyed by title, so a rerun scores the same
 extractions instead of asking again. Each entry also records which model
 answered (llm_model) and whether that was the fallback after LLM_MODEL
 declined (llm_fallback); llm_fallback_titles() lists those titles.
+
+Rep 5: abstain_match() is Rep 4 with a confidence number on each answer,
+taken from how the Rep 3d matcher reached it (distinct_name_confidence()):
+1 / the number of different vehicles still in contention at the step that
+decided, times the winning fuzzy score / 100 on the Rep 2 fallback. An
+answer below CONFIDENCE_THRESHOLD comes back as NONE. The LLM extractions
+are Rep 4's, read from the same cache; no new calls are made.
 """
 
 import csv
@@ -183,24 +190,29 @@ def fuzzy_match(title, threshold=FUZZY_THRESHOLD):
     ranked by model score, then by Rep 1's tie-break: longest model, then
     fleet_count, then alphabetically.
     """
+    candidates = _fuzzy_candidates(title, threshold)
+    if not candidates:
+        return "NONE"
+    make, model, _ = candidates[0][1]
+    return f"{make}|{model}"
+
+
+def _fuzzy_candidates(title, threshold=FUZZY_THRESHOLD):
+    """Return fuzzy_match()'s candidates as (model score, vehicle), best first."""
     vehicles = _get_vehicles()
     make_keys, model_keys = _get_fuzzy_keys()
     windows = _windows(title)
 
     make_scores = _best_scores(windows, make_keys, threshold)
     if not make_scores:
-        return "NONE"
+        return []
     model_scores = _best_scores(windows, model_keys, threshold)
 
     candidates = [
         (model_scores[i], vehicles[i]) for i in model_scores if i in make_scores
     ]
-    if not candidates:
-        return "NONE"
-
     candidates.sort(key=lambda c: (-c[0], -len(c[1][1]), -c[1][2], c[1][0], c[1][1]))
-    make, model, _ = candidates[0][1]
-    return f"{make}|{model}"
+    return candidates
 
 
 def _alias_names(field):
@@ -260,15 +272,23 @@ def alias_lookup(title, aliases=None):
 
     aliases defaults to Rep 3a's table.
     """
-    windows = set(_windows(title))
     best = None
-    for make_key, by_name in (aliases or _get_aliases()).items():
-        if make_key not in windows:
-            continue
-        for name_key, label in by_name.items():
-            if name_key in windows and (best is None or len(name_key) > len(best[0])):
-                best = (name_key, label)
+    for name_key, label in _alias_hits(title, aliases):
+        if best is None or len(name_key) > len(best[0]):
+            best = (name_key, label)
     return best[1] if best else None
+
+
+def _alias_hits(title, aliases=None):
+    """Return every (name_key, "MAKE|MODEL") the alias table finds in title."""
+    windows = set(_windows(title))
+    return [
+        (name_key, label)
+        for make_key, by_name in (aliases or _get_aliases()).items()
+        if make_key in windows
+        for name_key, label in by_name.items()
+        if name_key in windows
+    ]
 
 
 def fixed_label(label, aliases=None):
@@ -643,11 +663,59 @@ def llm_fallback_titles():
 
 def llm_extract_match(title, threshold=FUZZY_THRESHOLD):
     """Rep 4: Rep 3d on the make, model and chassis the LLM copies out of title."""
+    return distinct_name_match(_llm_rebuilt(title), threshold)
+
+
+def _llm_rebuilt(title):
+    """Return the LLM's fields for title rebuilt as "MAKE MODEL - CHASSIS"."""
     fields = llm_extract(title)
     rebuilt = " ".join(part for part in (fields["make"], fields["model"]) if part)
     if fields["chassis"]:
         rebuilt += f" - {fields['chassis']}"
-    return distinct_name_match(rebuilt, threshold)
+    return rebuilt
+
+
+CONFIDENCE_THRESHOLD = 0.9
+
+
+def distinct_name_confidence(title, threshold=FUZZY_THRESHOLD):
+    """Return (label, confidence) for Rep 3d's answer on title.
+
+    The label is distinct_name_match()'s, reached by the same steps; the
+    confidence says how contested the step that decided it was:
+
+    - Alias table: 1 / the number of different vehicles its names found in
+      the listing.
+    - Rep 2 fallback: the winning model score / 100, divided by the number
+      of different vehicles among its candidates (after the fixed name).
+    - Chassis code: 1 / the number of vehicles the code points at, which is
+      1.0 whenever it decides.
+    - NONE: confidence 0.0.
+    """
+    aliases = _get_distinct_aliases()
+    hits = _alias_hits(title, aliases)
+    if hits:
+        return alias_lookup(title, aliases), 1 / len({label for _, label in hits})
+    candidates = _fuzzy_candidates(title, threshold)
+    if candidates:
+        labels = {fixed_label(f"{make}|{model}", aliases) for _, (make, model, _) in candidates}
+        label = fixed_label(fuzzy_match(title, threshold), aliases)
+        return label, candidates[0][0] / 100 / len(labels)
+    vehicles = chassis_vehicles(title)
+    if len(vehicles) == 1:
+        return next(iter(vehicles)), 1.0
+    return "NONE", 0.0
+
+
+def rep5_confidence(title, threshold=FUZZY_THRESHOLD):
+    """Return Rep 4's (label, confidence) for title."""
+    return distinct_name_confidence(_llm_rebuilt(title), threshold)
+
+
+def abstain_match(title, threshold=FUZZY_THRESHOLD, min_confidence=CONFIDENCE_THRESHOLD):
+    """Rep 5: Rep 4's label, or NONE when its confidence is below min_confidence."""
+    label, confidence = rep5_confidence(title, threshold)
+    return label if confidence >= min_confidence else "NONE"
 
 
 def main():

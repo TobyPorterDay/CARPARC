@@ -23,6 +23,7 @@ has a variant (vocab.md: a variant is only labelled when the listing
 includes one).
 """
 
+import csv
 import os
 import random
 
@@ -46,7 +47,28 @@ REPS = {
     "rep3c_name_first": vclf.name_first_match,
     "rep3d_distinct_names": vclf.distinct_name_match,
     "rep4_llm_extract": vclf.llm_extract_match,
+    "rep5_abstain": vclf.abstain_match,
 }
+
+# Reps that answer NONE instead of guessing, each paired with the rep it
+# abstains from. main() prints each one's precision and coverage, and lists
+# the baseline's wrong rows it turns to NONE.
+ABSTAINS_FROM = {
+    "rep5_abstain": "rep4_llm_extract",
+}
+
+# Reps whose confidence main() records row by row: each maps to a function
+# returning (label before the threshold, confidence) for a title, and the
+# rows are written to confidence_path().
+CONFIDENCE = {
+    "rep5_abstain": vclf.rep5_confidence,
+}
+
+
+def confidence_path(name, gold_path=None):
+    """Return where main() records name's per-row confidence for a gold set."""
+    gold_stem = os.path.splitext(os.path.basename(gold_path or LABELS_PATH))[0]
+    return f"data/{name}_confidence_{gold_stem}.csv"
 
 
 def load_gold(con, path=None):
@@ -226,6 +248,118 @@ def sample_errors(con, predictions, n=20, seed=0):
     return random.Random(seed).sample(errors, min(n, len(errors)))
 
 
+def score_answered(con, predictions):
+    """Score only the rows a rep answers. Returns (precision, coverage), each (count, n, rate).
+
+    A row is answered when its predicted key is anything but NONE (or no
+    prediction). precision is score()'s correct count over the answered
+    rows; coverage is answered rows over all rows. A NONE the gold agrees
+    with still counts toward score(), but is not an answer here. The
+    precision rate is None when nothing is answered.
+    """
+    load_predictions(con, predictions)
+
+    answered, answered_correct, n = con.execute(
+        """
+        SELECT
+            CAST(COUNT(*) FILTER (WHERE answered) AS INTEGER),
+            CAST(COUNT(*) FILTER (WHERE answered AND correct) AS INTEGER),
+            CAST(COUNT(*) AS INTEGER)
+        FROM (
+            SELECT
+                COALESCE(UPPER(TRIM(p.PredictedKey)), 'NONE') != 'NONE' AS answered,
+                v.Label IS NOT NULL
+                    AND LOWER(TRIM(p.PredictedKey)) = LOWER(TRIM(g.Label)) AS correct
+            FROM predictions p
+            JOIN gold g
+                ON LOWER(TRIM(p.Listing)) = LOWER(TRIM(g.Listing))
+            LEFT JOIN (SELECT DISTINCT Label FROM gold) v
+                ON LOWER(TRIM(v.Label)) = LOWER(TRIM(p.PredictedKey))
+        )
+        """
+    ).fetchone()
+    return (
+        (answered_correct, answered, answered_correct / answered if answered else None),
+        (answered, n, answered / n if n else None),
+    )
+
+
+def abstained_errors(con, baseline, predictions):
+    """Return the (Listing, Gold, Baseline) rows baseline got wrong that predictions answer NONE.
+
+    baseline and predictions are both (Listing, Predicted) pairs over the
+    same listings: the rep before a change, and the rep after it. "Wrong"
+    matches score()'s definition, taken on baseline. A row whose gold is
+    itself NONE comes back too; there, answering NONE is also a fix.
+    """
+    load_predictions(con, baseline)
+    con.execute("CREATE OR REPLACE TABLE baseline_predictions AS SELECT * FROM predictions")
+    load_predictions(con, predictions)
+
+    return con.execute(
+        """
+        SELECT b.Listing, g.Label, b.Predicted
+        FROM baseline_predictions b
+        JOIN gold g
+            ON LOWER(TRIM(b.Listing)) = LOWER(TRIM(g.Listing))
+        JOIN predictions p
+            ON LOWER(TRIM(p.Listing)) = LOWER(TRIM(b.Listing))
+        LEFT JOIN (SELECT DISTINCT Label FROM gold) v
+            ON LOWER(TRIM(v.Label)) = LOWER(TRIM(b.PredictedKey))
+        WHERE (b.PredictedKey IS NULL
+               OR v.Label IS NULL
+               OR LOWER(TRIM(b.PredictedKey)) != LOWER(TRIM(g.Label)))
+          AND UPPER(TRIM(p.PredictedKey)) = 'NONE'
+          -- Already NONE before the change: not changed to NONE.
+          AND UPPER(TRIM(COALESCE(b.PredictedKey, ''))) != 'NONE'
+        ORDER BY b.Listing
+        """
+    ).fetchall()
+
+
+def write_confidence(con, rows, path):
+    """Write (Listing, Label, Confidence, Predicted) rows to path, with gold. Returns the rows written.
+
+    Label is the rep's answer before its threshold, Predicted the answer it
+    gives after. Gold is the row's gold label and Correct whether Predicted
+    matches it, as score() counts it. Rows come out in listing order.
+    """
+    con.execute(
+        "CREATE OR REPLACE TABLE confidence "
+        "(Listing VARCHAR, Label VARCHAR, Confidence DOUBLE, Predicted VARCHAR)"
+    )
+    con.executemany("INSERT INTO confidence VALUES (?, ?, ?, ?)", rows)
+    load_predictions(con, [(listing, predicted) for listing, _, _, predicted in rows])
+    written = con.execute(
+        """
+        SELECT
+            c.Listing,
+            g.Label AS Gold,
+            c.Label,
+            c.Confidence,
+            c.Predicted,
+            v.Label IS NOT NULL
+                AND LOWER(TRIM(p.PredictedKey)) = LOWER(TRIM(g.Label)) AS Correct
+        FROM confidence c
+        JOIN gold g
+            ON LOWER(TRIM(c.Listing)) = LOWER(TRIM(g.Listing))
+        JOIN predictions p
+            ON LOWER(TRIM(p.Listing)) = LOWER(TRIM(c.Listing))
+        LEFT JOIN (SELECT DISTINCT Label FROM gold) v
+            ON LOWER(TRIM(v.Label)) = LOWER(TRIM(p.PredictedKey))
+        ORDER BY c.Listing
+        """
+    ).fetchall()
+    if len(written) != len(rows):
+        raise ValueError(f"join dropped rows: {len(rows)} in, {len(written)} matched gold")
+
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Listing", "Gold", "Label", "Confidence", "Predicted", "Correct"])
+        writer.writerows(written)
+    return written
+
+
 def label_counts(con, predictions):
     """Count every (gold, predicted) pair. Returns (Gold, Predicted, Count) rows.
 
@@ -274,6 +408,30 @@ def main():
         if v_n:
             line += f"  variant={v_correct}/{v_n} ({v_accuracy:.2f})"
         print(line)
+
+    for name, baseline_name in ABSTAINS_FROM.items():
+        baseline = [(listing, REPS[baseline_name](listing)) for (listing,) in listings]
+        predictions = [(listing, REPS[name](listing)) for (listing,) in listings]
+        baseline_correct, baseline_n, _ = score(con, baseline)
+        baseline_wrong = baseline_n - baseline_correct
+        caught = abstained_errors(con, baseline, predictions)
+        (p_correct, p_n, precision), (answered, n, coverage) = score_answered(con, predictions)
+        precision_text = f"{precision:.2f}" if precision is not None else "n/a"
+        print(
+            f"{name}: precision={p_correct}/{p_n} ({precision_text})"
+            f"  coverage={answered}/{n} ({coverage:.2f})"
+        )
+        print(f"{name}: {baseline_name} errors turned to NONE={len(caught)}/{baseline_wrong}")
+        for listing, gold, predicted in caught:
+            print(f"  {listing} | gold={gold} | {baseline_name}={predicted}")
+
+    for name, confidence_fn in CONFIDENCE.items():
+        rows = [
+            (listing, *confidence_fn(listing), REPS[name](listing)) for (listing,) in listings
+        ]
+        path = confidence_path(name)
+        write_confidence(con, rows, path)
+        print(f"{name}: confidence for {len(rows)} rows written to {path}")
 
 
 if __name__ == "__main__":
