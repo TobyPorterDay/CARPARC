@@ -1022,6 +1022,79 @@ Balances: 6 survivors from Rep 3d minus the 1 category 5 fix (FTO) = 5, + 0 new 
 
 ---
 
+### Rep 5 —  hybrid with abstention + confidence calibration
+
+**Date:** 30/09
+
+**Initial setup**
+- Data:            data/gold_vehicles_dev.csv, 100 rows, Make/Model/Variant (commit: )
+- System:          rep5_abstain (vehicle_classify.abstain_match): Rep 4's label
+                   (rep4_llm_extract) with a confidence number; below
+                   CONFIDENCE_THRESHOLD = 0.9 the output is NONE. The label itself
+                   is unchanged. Confidence (distinct_name_confidence) is taken from
+                   the Rep 3d step that decided the label: alias table = 1 / number
+                   of different vehicles its names found; Rep 2 fallback = winning
+                   score / 100 / number of different candidate vehicles; chassis
+                   code = 1.0 (it only decides on one vehicle); no match = 0.0.
+                   LLM extractions read from Rep 4's cache (data/rep4_llm_cache.json,
+                   commit: f862832); no new LLM calls. (code commit: )
+
+**The one specific change**
+- A confidence number is generated for the label of each row. If it is below a certain threshold, no answer is given. 
+
+**Which rows the change can reach** — counted before running
+- Rep 4 errors it should fix (listings): None
+- Currently correct rows it could break (listings): Honda Inspire - CB-CC 1989-1995, Land Rover Discovery - Series 2 1999-2004, Ford XR6 - FG-FGX 2008-2016
+- Rep 4 wrong answers predicted to become NONE (candidates: Mazda MX5 - NB 1998-2005, Toyota Mr2 - SW20 1990-1994, Dodge Ram 1500 - 94-01; Surf and Emmeraude are already NONE): 1 - Dodge Ram 1500 - 94-01
+
+**Prediction** — written before running
+- Predicted score: 92/100
+- Predicted precision: 92/94 / coverage: 94/100 /  (written at: 06:11 on 30/09)
+- Reasoning (one or two lines): No new fixes can be made since there is no change in the selection function from rep 4. Three rows are at risk of breaking if the confidence threshold is low enough.
+- Written at: 04:31 on 30/09
+
+**Calibration prediction** — written before running
+(Source after the run: data/rep5_abstain_confidence_gold_vehicles_dev.csv. "Correct" here means the label before the threshold matches gold.)
+- Rows at confidence 1.0: predicted count = 94; predicted correct = 92/94
+- Rows below 0.9 (abstained): predicted count = 6; predicted correct if they had answered = 3/6
+- Reasoning (one line): There are six rows in total that are already NONE or could become NONE.
+- Written at: 06:23 on 30/09.
+
+**Result**
+- Observed score: 
+- Variant score: 
+- Observed precision / coverage: / 
+- Signed error (observed − predicted): 
+- Measured at: 
+
+**Calibration result**
+- Rows at confidence 1.0: observed count = ; observed correct = /
+- Rows below 0.9 (abstained): observed count = ; correct if they had answered = /
+
+**Reconciliation:** 95 + ? − ? = ?
+- Rows fixed: 
+- Rows broken: 
+
+**Remaining errors** (all read)
+| Listing | Gold | Predicted |
+|---|---|---|
+|  |  |  |
+
+**Error categories**
+| # | Category | Survivor / New | Count | Example |
+|---|---|---|---|---|
+|  |  |  |  |  |
+Uncategorised / other: 
+
+Balances: 
+
+**Explanation**
+- Why the gap: 
+- What this says about my model of the system: 
+- What I'd predict next, and why: 
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
