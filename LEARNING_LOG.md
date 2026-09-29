@@ -1027,7 +1027,7 @@ Balances: 6 survivors from Rep 3d minus the 1 category 5 fix (FTO) = 5, + 0 new 
 **Date:** 30/09
 
 **Initial setup**
-- Data:            data/gold_vehicles_dev.csv, 100 rows, Make/Model/Variant (commit: )
+- Data:            data/gold_vehicles_dev.csv, 100 rows, Make/Model/Variant (commit: dde35a7)
 - System:          rep5_abstain (vehicle_classify.abstain_match): Rep 4's label
                    (rep4_llm_extract) with a confidence number; below
                    CONFIDENCE_THRESHOLD = 0.9 the output is NONE. The label itself
@@ -1037,7 +1037,7 @@ Balances: 6 survivors from Rep 3d minus the 1 category 5 fix (FTO) = 5, + 0 new 
                    score / 100 / number of different candidate vehicles; chassis
                    code = 1.0 (it only decides on one vehicle); no match = 0.0.
                    LLM extractions read from Rep 4's cache (data/rep4_llm_cache.json,
-                   commit: f862832); no new LLM calls. (code commit: )
+                   commit: f862832); no new LLM calls. (code commit: dde35a7)
 
 **The one specific change**
 - A confidence number is generated for the label of each row. If it is below a certain threshold, no answer is given. 
