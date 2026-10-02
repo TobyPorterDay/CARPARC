@@ -11,3 +11,7 @@ __pycache__/
 .env
 .DS_Store
 .claude/settings.local.json
+
+# Fake Trade Me listings, rebuilt by running the sync against it.
+data/fake_trademe_state.json
+data/fake_trademe_state.json.tmp
