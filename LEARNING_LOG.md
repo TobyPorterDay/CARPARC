@@ -1128,6 +1128,24 @@ Not a rep: nothing in the system changed, no prediction, no calibration row.
 
 ---
 
+### Note — Trade Me OAuth token
+
+Not a rep: no prediction, no measurement. Follows the 05/09 API access note.
+
+**Date:** 03/10
+
+- Token route: Trade Me token generator.
+- Error hit on the way:
+
+  ```
+  HTTP/1.1 400 BadRequest
+
+  Your application is set up to use oob as the default callback (Client). If you
+  want to redirect to a URL then please update your settings to Browser.
+  ```
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
