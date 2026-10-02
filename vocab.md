@@ -237,6 +237,19 @@ How these are applied:
 - When the chassis codes point at two models and neither is named in the
   listing, the chassis code decides nothing and the model name decides.
 
+## JDM and export names
+
+Written 03/10. Records the rule applied when the gold set was labelled; it was
+not written down at the time.
+
+- If the canonical table holds the name the listing uses, label that name,
+  e.g. "Honda Inspire" → HONDA|INSPIRE, even where the alias table merges it
+  with another model.
+- If it doesn't, label the register's name for the same vehicle, e.g.
+  "Toyota Surf" → TOYOTA|4RUNNER, "Mitsubishi Emmeraude" → MITSUBISHI|GALANT.
+- Where the register holds two spellings of one model (MX-5 / MX5), gold uses
+  one; the other is scored wrong.
+
 ## Known unresolved
 
 Not present in the 40-record gold set. Expected to appear at 3,000. Do not

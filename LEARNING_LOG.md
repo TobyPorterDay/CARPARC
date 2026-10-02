@@ -1107,6 +1107,24 @@ Balances: 5 survivors from Rep 4 minus 0 fixes = 5, + 2 new (category 9: Inspire
 
 ---
 
+### Note — External feedback ask (methodology, not results)
+
+**Date:** 03/10
+
+Not a rep: nothing in the system changed, no prediction, no calibration row.
+
+- What was sent: METHODOLOGY_REVIEW.md / .pdf — data, gold set, scoring rules,
+  how the dev set was used, known weaknesses. No scores.
+- Posted publicly: TODO (where)
+- Sent directly: TODO (who)
+- Questions asked: TODO
+- Written up while drafting it: the held-out set still carries the pre-19/09
+  labelling rules and will be relabelled to the current rules before the Week 4
+  run (logged as an extra look); the JDM/export rule is now in vocab.md.
+- Replies and what changed because of them: TODO — log when they arrive.
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).

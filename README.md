@@ -8,8 +8,9 @@ the JDM name, the export name and the chassis code all disagree with each other.
 Returning `None` is a first-class outcome.
 
 **Status: pre-v0.1.0.** Instrument built, corpus collected, gold set drawn and
-labelled, 100 dev / 100 held-out. Week 2 in progress: Reps 1–3 measured,
-Reps 4–5 outstanding. TODO: numbers for LLM extraction and the hybrid rep.
+labelled, 100 dev / 100 held-out. Week 2 complete: five reps measured on the
+dev set. Next: Week 3, Trade Me sandbox sync and failure injection. TODO:
+held-out score (Week 4).
 
 ## The two functions
 
@@ -79,13 +80,23 @@ python3 label_vehicles.py         # labels the dev set
 | 1 | contains model anywhere | 91/100 (0.91) | 100 |
 | 2 | fuzzy match, make and model scored separately, threshold 95 | 89/100 (0.89) | 100 |
 | 3 | alias table (top 40 vehicles, 39.6% of fleet) name match first, chassis code only when no name matches; alias names that are separate register models dropped | 94/100 (0.94) | 100 |
+| 4 | LLM copies make, model and chassis code verbatim from the title; Rep 3's matcher does the lookup | 95/100 (0.95) | 100 |
+| 5 | Rep 4, returning `NONE` on any tie between candidate vehicles | 93/100 (0.93); precision 92/92 (1.00), coverage 92/100 (0.92) | 100 |
 
 The dev gold changed between Rep 2 and Rep 3: labels were split into model and
 variant, and three BMW rows moved to the parent line (3 Series, 5 Series).
 Reps 1 and 2 above were scored on the earlier labels. On the current gold they
 score 94/100 and 92/100, so Rep 3 ties Rep 1 rather than beating it.
 
+Rep 5 turned all three of Rep 4's wrong answers into `NONE`, and two correct
+answers as well (Honda Inspire, Land Rover Discovery), where a spurious
+candidate tied with the right one. Every answer it gave was right; it answered
+92 of 100.
+
 Reported as point estimates until small-n results make intervals necessary.
+
+The full evaluation method, including known weaknesses, is in
+[METHODOLOGY_REVIEW.md](METHODOLOGY_REVIEW.md).
 
 Rep 2's threshold is inert on this dev set: 100, 95 and 80 produce identical
 predictions, because every decision is made at a similarity of exactly 100 once
