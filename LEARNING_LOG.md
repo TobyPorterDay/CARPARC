@@ -1175,6 +1175,20 @@ Not a rep: no prediction, no measurement. Follows the 03/10 OAuth token note.
 
 ---
 
+### Note — Edit and withdraw dropped from the sync
+
+Not a rep: no prediction, no measurement. Follows the 03/10 Ping outage note.
+
+**Date:** 03/10
+
+- The sync (`sync.py`) is create-only: one listing per unmapped inventory
+  row, Id from the reply written to `listing_map`. Edit and withdraw have
+  been dropped.
+- The fake Trade Me (`fake_trademe.py`) still serves the Edit and Withdraw
+  endpoints; nothing in the sync calls them.
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
