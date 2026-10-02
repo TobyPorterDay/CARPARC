@@ -1146,6 +1146,35 @@ Not a rep: no prediction, no measurement. Follows the 05/09 API access note.
 
 ---
 
+### Note — Sandbox Ping outage blocks listing validation
+
+Not a rep: no prediction, no measurement. Follows the 03/10 OAuth token note.
+
+**Date:** 03/10
+
+- `POST /v1/Selling/Validate.json` on the sandbox, inventory row 1
+  ("Air Cond Pump Assy", category `0001-0877-2738-2744-`, Car parts &
+  accessories → BMW → Other). Auth worked; validation did not:
+
+  ```
+  HTTP 400
+  {"ErrorDescription":"Ping is not a valid payment method."}
+  ```
+
+- Same error with `PaymentMethods` set to `[1,2]`, `[2,4]`, `[1]`, `[3]`,
+  `[4]`, `[32]` (Ping), and omitted; and with and without a `StartPrice`. The
+  request is not the cause.
+- The sandbox site shows "Ping is currently unavailable".
+- Trade Me requires Ping on every marketplace listing, so no car-parts listing
+  can validate or be created on the sandbox until Ping is back.
+- No API method sets Ping up; the Ping methods only read the balance and make
+  refunds.
+- Also outstanding before a listing can pass: every `inventory.price` is NULL
+  (StartPrice must be at least 50c), and the test category is BMW for a Toyota
+  Noah part.
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
