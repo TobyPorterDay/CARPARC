@@ -1115,9 +1115,12 @@ Not a rep: nothing in the system changed, no prediction, no calibration row.
 
 - What was sent: METHODOLOGY_REVIEW.md / .pdf — data, gold set, scoring rules,
   how the dev set was used, known weaknesses. No scores.
-- Posted publicly: TODO (where)
-- Sent directly: TODO (who)
-- Questions asked: TODO
+- Posted publicly: DataTalks.Club Slack
+- Sent directly: an engineer friend
+- Questions asked:
+  1. What should the key metric be to optimise for the fewest wrong vehicle matches?
+  2. I tried five different approaches on the same 100 dev rows. Are these results trustworthy when applied to the rest of the data?
+  3. Any other errors I haven't mentioned in the weaknesses section?
 - Written up while drafting it: the held-out set still carries the pre-19/09
   labelling rules and will be relabelled to the current rules before the Week 4
   run (logged as an extra look); the JDM/export rule is now in vocab.md.
