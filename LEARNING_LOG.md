@@ -1189,6 +1189,316 @@ Not a rep: no prediction, no measurement. Follows the 03/10 Ping outage note.
 
 ---
 
+## Week 3 — Failure mode predictions
+
+One block per FAILURE_MODES.md row. Same rule as every rep: the prediction
+is written **before** the failure is injected. A block with no prediction
+does not count towards the 15.
+
+Gate: all 15 exercised, each with a logged prediction. Full sync run twice
+→ zero duplicates.
+
+### Failure mode summary
+
+Fill the row in the same sitting as the block.
+
+| # | Failure | Predicted (TM listings / map rows / duplicates) | Observed (TM listings / map rows / duplicates; from #6 also Ids matched = mapped Ids on TM / map rows) | Prediction right? |
+|---|---|---|---|---|
+| 1 | Ping down, Trade Me rejects new listings | run 1: 10 / 0 / 0; run 2: 10 / 10 / 0 | run 1: 0 / 0 / 0; run 2: 10 / 10 / 0 | N |
+| 2 | Internet down before request reaches Trade Me | run 1: 0 / 0 / 0; run 2: 10 / 10 / 0 | run 1: 0 / 0 / 0; run 2: 10 / 10 / 0 | N |
+| 3 | listing_map has a listing that's not on Trade Me | run 1: 9 / 10 / 0; run 2: 10 / 10 / 0 | run 1: 9 / 10 / 0; run 2: 9 / 10 / 0 | N |
+| 4 | Authorisation header is wrong | run 1: 0 / 0 / 0; run 2: 10 / 10 / 0 | run 1: 0 / 0 / 0; run 2: 10 / 10 / 0 | Y |
+| 5 | Trade Me's servers are down | run 1: 0 / 0 / 0; run 2: 10 / 10 / 0 | run 1: 0 / 0 / 0; run 2: 10 / 10 / 0 | Y |
+| 6 | New listing comes back with the wrong Id | run 1: 10 / 10 / 0; run 2: 10 / 10 / 0 | run 1: 10 / 10 / 0, Ids matched 0 / 10; run 2: 10 / 10 / 0, Ids matched 0 / 10 | Y |
+| 7 | Trade Me sends back the wrong JSON |  |  |  |
+| 8 | Trade Me saves it, reply never reaches me |  |  |  |
+| 9 | Rate limit hit |  |  |  |
+| 10 | My code crashes after create, before listing_map |  |  |  |
+| 11 | Request times out, Trade Me is slow |  |  |  |
+| 12 | Token expires partway through a run |  |  |  |
+| 13 | Same item sent twice |  |  |  |
+| 14 | Trade Me says success, listing never appears |  |  |  |
+| 15 | Trade Me has a listing that isn't mapped after a sync |  |  |  |
+
+Prediction right: Y / N. Hit rate at the end = calibration for Week 3.
+
+### Block template — copy once per failure
+
+```markdown
+#### Failure [#] — [plain words from FAILURE_MODES.md]
+
+**Date:**
+
+**Setup**
+- How it was injected:   (exact command)
+- Starting state:        inventory rows __ / TM listings __ / listing_map rows __
+
+**Prediction** — written before injecting
+- What the sync does:    (crashes / logs an error and carries on / says nothing)
+- After run 1 (failure on):   TM listings __ / map rows __ / duplicates __
+- After run 2 (failure off):  TM listings __ / map rows __ / duplicates __
+- Reasoning (one or two lines):
+- Written at: [time]
+
+**Result**
+- What the sync did:
+- After run 1:   TM listings __ / map rows __ / duplicates __
+- After run 2:   TM listings __ / map rows __ / duplicates __
+- Measured at: [time]
+
+**Explanation**
+- Why the gap:
+- What this says about my model of the sync:
+- One change to make (if any):
+```
+
+### Entries
+
+#### Failure 1 — Ping is down, so Trade Me rejects new listings
+
+**Date:** 06/10
+
+**Setup**
+- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 1`
+                         terminal 2: `python3 sync.py`
+                         (run 2: stop the fake, restart with `python3 fake_trademe.py`, run `python3 sync.py` again)
+- Starting state:        inventory rows 10 / TM listings 0 / listing_map rows 0
+                         (no data/fake_trademe_state.json yet, so the fake starts empty)
+
+**Prediction** — written before injecting
+- What the sync does: The rows are printed, but left unmapped.
+- After run 1 (failure on):   TM listings 10 / map rows 0 / duplicates 0
+- After run 2 (failure off):  TM listings 10 / map rows 10 / duplicates 0
+- Reasoning (one or two lines): The Trade Me listings are created, but since Ping is down the prices can't be mapped.
+- Written at: 04:57 on 06/10
+
+**Result**
+- What the sync did:     run 1 printed `HTTP 400 {"ErrorDescription": "Ping is not a valid payment method."}`
+                         for each of the 10 rows, left them all unmapped and exited normally
+                         ("created 0, listing_map 0 rows"). Run 2 created 1000001–1000010 and mapped all 10.
+- After run 1:   TM listings 0 / map rows 0 / duplicates 0
+- After run 2:   TM listings 10 / map rows 10 / duplicates 0
+- Measured at: 05:01 on 06/10 (TM listings from SellingItems/All read-back; duplicates = repeated titles)
+
+**Explanation**
+- Why the gap: No Trade Me listings were created since Ping was unavaliable at the time.
+- What this says about my model of the sync: I thought a listing would be created without the price. Instead, it rejects the listing without creating it. 
+- One change to make (if any): None. No discrepancies were created. Trade Me and the map match.
+
+---
+
+#### Failure 2 — Internet connection goes down before the request reaches Trade Me
+
+**Date:** 06/10
+
+**Setup**
+- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 2`
+                         terminal 2: `python3 sync.py`
+                         (run 2: stop the fake, restart with `python3 fake_trademe.py`, run `python3 sync.py` again)
+                         The fake closes the socket with no reply on every call, read-back included,
+                         so run 1's TM listings are counted from data/fake_trademe_state.json.
+- Starting state:        inventory rows 10 / TM listings 0 / listing_map rows 0
+                         (listing_map cleared and data/fake_trademe_state.json deleted after Failure 1)
+
+**Prediction** — written before injecting
+- What the sync does: Sync doesn't print anything because the request never reaches Trade Me
+- After run 1 (failure on):   TM listings 0 / map rows 0 / duplicates 0
+- After run 2 (failure off):  TM listings 10 / map rows 10 / duplicates 0
+- Reasoning (one or two lines): The chain breaks from the first step, so nothing is created or mapped.
+- Written at: 06:31 on 06/10
+
+**Result**
+- What the sync did:     run 1 printed `local N: ConnectionError` for each of the 10 rows, left them all
+                         unmapped and exited normally ("created 0, listing_map 0 rows"). The fake never
+                         wrote a state file. Run 2 created 1000001–1000010 and mapped all 10.
+- After run 1:   TM listings 0 / map rows 0 / duplicates 0
+- After run 2:   TM listings 10 / map rows 10 / duplicates 0
+- Measured at: 06:33 on 06/10 (run 1 TM listings: no data/fake_trademe_state.json; run 2: SellingItems/All
+               read-back; duplicates = repeated titles)
+
+**Explanation**
+- Why the gap: No gap in the numbers. But I got the output of the sync wrong. Errors are picked up based on what Trade Me sends back.
+- What this says about my model of the sync: I predicted the sync wouldn't print anything. It printed the conection error for each row. I thought what the sync prints depends on what Trade Me sends back.
+- One change to make (if any): None, Trade Me and the map match.
+
+---
+
+#### Failure 3 — The listing map shows a listing that's not on Trade Me
+
+**Date:** 07/10
+
+**Setup**
+- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 3`
+                         terminal 2: `python3 sync.py`
+                         (run 2: stop the fake, restart with `python3 fake_trademe.py`, run `python3 sync.py` again)
+                         On start-up the fake deletes the lowest live listing (1000001, local 1) from its
+                         state file, then serves normally. The deletion is saved, so it stays gone in run 2.
+- Starting state:        inventory rows 10 / TM listings 10 / listing_map rows 10
+                         (carried over from Failure 2 run 2: listings 1000001–1000010, all mapped)
+
+**Prediction** — written before injecting
+- What the sync does: The mapped row deletes a live listing.
+- After run 1 (failure on):   TM listings 9 / map rows 10 / duplicates 0
+- After run 2 (failure off):  TM listings 10 / map rows 10 / duplicates 0
+- Reasoning (one or two lines): The mapped listing thats not on Trade Me deletes one that is.
+- Written at: 20:36 on 07/10
+
+**Result**
+- What the sync did:     both runs printed "0 unmapped rows" and "created 0, listing_map 10 rows" and
+                         made no calls to Trade Me at all (the fake's log shows only my read-back).
+                         Nothing was deleted or recreated: 1000001 stayed missing from Trade Me and
+                         stayed in listing_map, mapped to local 1, through both runs.
+- After run 1:   TM listings 9 / map rows 10 / duplicates 0
+- After run 2:   TM listings 9 / map rows 10 / duplicates 0
+- Measured at: 20:37 on 07/10 (TM listings from SellingItems/All read-back; duplicates = repeated titles)
+
+**Explanation**
+- Why the gap: The missing listing was not corrected in the second run. It was still mapped so the sync didn't send any calls to TM.
+- What this says about my model of the sync: I thought the mapped rows would be compared to TM, only the listing map is read.
+- One change to make (if any): Check the TM and mapped listings match before completing the sync. If they don't match, make changes on the map side only to match the listings on TM.
+
+---
+
+#### Failure 4 — The authorisation header is wrong
+
+**Date:** 08/10
+
+**Setup**
+- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 4`
+                         terminal 2: `python3 sync.py`
+                         (run 2: stop the fake, restart with `python3 fake_trademe.py`, run `python3 sync.py` again)
+- Starting state:        inventory rows 10 / TM listings 0 / listing_map rows 0
+                         (data/fake_trademe_state.json deleted and listing_map cleared after Failure 3)
+
+**Prediction** — written before injecting
+- What the sync does: No listings are created and each map row prints an error message.
+- After run 1 (failure on):   TM listings 0 / map rows 0 / duplicates 0
+- After run 2 (failure off):  TM listings 10 / map rows 10 / duplicates 0
+- Reasoning (one or two lines): The wrong authorisation header is created at the start, so every call after that fails.
+- Written at: 06:25 on 08/10
+
+**Result**
+- What the sync did:     run 1 printed `HTTP 401 {"ErrorDescription": "Invalid OAuth signature."}` for each
+                         of the 10 rows, left them all unmapped and exited normally ("created 0, listing_map
+                         0 rows"). The fake never wrote a state file. Run 2 created 1000001–1000010 and
+                         mapped all 10.
+- After run 1:   TM listings 0 / map rows 0 / duplicates 0
+- After run 2:   TM listings 10 / map rows 10 / duplicates 0
+- Measured at: 06:26 on 08/10 (run 1 TM listings: read-back also got 401, so counted from the absent
+               data/fake_trademe_state.json; run 2: SellingItems/All read-back; duplicates = repeated titles)
+
+**Explanation**
+- Why the gap: None, the prediction matched the result. No listings were created or rows mapped. TM didn't make the change so nothing was created or mapped. The sync doc outlines the error protocol.
+- What this says about my model of the sync: Since TM rejects all calls, no listing or map row is created. No discrepancy is created, so every row is retried on the second run.
+- One change to make (if any): None, no errors were created.
+
+---
+
+#### Failure 5 — Trade Me's own servers are down
+
+**Date:** 09/10
+
+**Setup**
+- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 5`
+                         terminal 2: `python3 sync.py`
+                         (run 2: stop the fake, restart with `python3 fake_trademe.py`, run `python3 sync.py` again)
+- Starting state:        inventory rows 10 / TM listings 0 / listing_map rows 0
+                         (data/fake_trademe_state.json deleted and listing_map cleared after Failure 4)
+
+**Prediction** — written before injecting
+- What the sync does: Sync displays the error reply (non-200) for each row.
+- After run 1 (failure on):   TM listings 0 / map rows 0 / duplicates 0
+- After run 2 (failure off):  TM listings 10 / map rows 10 / duplicates 0
+- Reasoning (one or two lines): Every TM call result in a browser-level failure message.
+- Written at: 04:23 on 09/10
+
+**Result**
+- What the sync did:     run 1 printed `HTTP 503 <html><body>Trade Me is down for maintenance</body></html>`
+                         for each of the 10 rows, left them all unmapped and exited normally ("created 0,
+                         listing_map 0 rows"). The fake never wrote a state file. Run 2 created
+                         1000001–1000010 and mapped all 10.
+- After run 1:   TM listings 0 / map rows 0 / duplicates 0
+- After run 2:   TM listings 10 / map rows 10 / duplicates 0
+- Measured at: 04:24 on 09/10 (run 1 TM listings: read-back also got 503, so counted from the absent
+               data/fake_trademe_state.json; run 2: SellingItems/All read-back; duplicates = repeated titles)
+
+**Explanation**
+- Why the gap: No gaps in the prediction. An error reply (non-200) was printed for every row.
+- What this says about my model of the sync: I thought the body of the HTTP reply affected what the sync printed. It prints the message regardless of the format, HTML or JSON.
+- One change to make (if any): None, no errors created.
+
+---
+
+#### Failure 6 — The new Trade Me listing sends the wrong Id
+
+**Date:** 09/10
+
+**Setup**
+- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 6`
+                         terminal 2: `python3 sync.py`
+                         (run 2: stop the fake, restart with `python3 fake_trademe.py`, run `python3 sync.py` again)
+                         Hits create calls only, so read-back works normally in run 1.
+- Starting state:        inventory rows 10 / TM listings 0 / listing_map rows 0
+                         (data/fake_trademe_state.json deleted and listing_map cleared after Failure 5)
+
+**Prediction** — written before injecting
+- What the sync does: Prints a success reply (200) for each row, but maps the wrong listing id.
+- After run 1 (failure on): TM listings 10 / map rows 10 / duplicates 0
+- After run 2 (failure off):  TM listings 10 / map rows 10 / duplicates 0
+- Reasoning (one or two lines): No duplicate listings will be created since they were mapped in the first run, but with the wrong listing id. There will be two different sets of listing ids - this is the measurement.
+- Written at: 06:05 on 09/10
+
+**Result**
+- What the sync did:     run 1 printed `local N: listing 1000778` … `1000787` for the 10 rows and mapped
+                         those Ids ("created 10, listing_map 10 rows"). Trade Me actually holds
+                         1000001–1000010, so 0 of the 10 mapped Ids exist on Trade Me and all 10 real
+                         listings are unmapped. Run 2 printed "0 unmapped rows", made no create calls
+                         and changed nothing.
+- After run 1:   TM listings 10 / map rows 10 / duplicates 0
+- After run 2:   TM listings 10 / map rows 10 / duplicates 0
+- Measured at: 06:06 on 09/10 (SellingItems/All read-back; duplicates = repeated titles; mapped Ids
+               compared with data/fake_trademe_state.json)
+
+**Explanation**
+- Why the gap: No gap. 10 listings were mapped with wrong listing id.
+- What this says about my model of the sync: It trusts all responses from the TM side so it maps the wrong id without raising alarm.
+- One change to make (if any): Add a function to check the listing id matches one on TM before mapping the row. Change the id to match the TM listing before mapping it.
+
+---
+
+#### Failure 7 — Trade Me sends back the wrong JSON content
+
+**Date:** 09/10
+
+**Setup**
+- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 7`
+                         terminal 2: `python3 sync.py`
+                         (run 2: stop the fake, restart with `python3 fake_trademe.py`, run `python3 sync.py` again)
+                         Hits every call, read-back included, so count run 1's TM listings from
+                         data/fake_trademe_state.json (absent = 0).
+- Starting state:        inventory rows 10 / TM listings 0 / listing_map rows 0
+                         (data/fake_trademe_state.json deleted and listing_map cleared after Failure 6)
+
+**Prediction** — written before injecting
+- What the sync does: It display an error code for each row and leaves them unmapped.
+- After run 1 (failure on):   TM listings 10 / map rows 0 / duplicates 0
+- After run 2 (failure off):  TM listings 10 / map rows 10 / duplicates 0
+- Reasoning (one or two lines): 
+- Written at:
+
+**Result**
+- What the sync did:
+- After run 1:   TM listings __ / map rows __ / duplicates __
+- After run 2:   TM listings __ / map rows __ / duplicates __
+- Measured at:
+
+**Explanation**
+- Why the gap:
+- What this says about my model of the sync:
+- One change to make (if any):
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
