@@ -1218,7 +1218,7 @@ Fill the row in the same sitting as the block.
 | 12 | Token expires partway through a run |  |  |  |
 | 13 | Same item sent twice |  |  |  |
 | 14 | Trade Me says success, listing never appears | run 1: 0 / 10 / 0; run 2: 0 / 0 / 0 | run 1: 0 / 10 / 0; run 2: 0 / 10 / 0 | N |
-| 15 | Trade Me has a listing that isn't mapped after a sync |  |  |  |
+| 15 | Trade Me has a listing that isn't mapped after a sync | run 1: 11 / 10 / 0; run 2: 11 / 10 / 0 | run 1: 11 / 10 / 0; run 2: 11 / 10 / 0 | Y |
 
 Prediction right: Y / N. Hit rate at the end = calibration for Week 3.
 
@@ -1575,6 +1575,45 @@ Prediction right: Y / N. Hit rate at the end = calibration for Week 3.
 - Why the gap: The 10 mapped rows were unchanged in the second run. The sync doesn't check TM, only the map ids. Nothing further is done after the map ids are loaded. 
 - What this says about my model of the sync: I thought the second run wouldn't print anything because it would read the TM listing ids and stop there. It doesn't remove mapped rows either.
 - One change to make (if any): Confirm the listing exists on TM before writing the map id.
+
+---
+
+#### Failure 15 — Trade Me shows a listing that is not mapped after a sync
+
+**Date:** 13/10
+
+**Setup**
+- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 15`
+                         terminal 2: `python3 sync.py`
+                         (run 2: stop the fake, restart with `python3 fake_trademe.py`, run `python3 sync.py` again)
+                         Hits read-back only: each read-back adds a listing made by hand ("Listed by hand"),
+                         so count run 1's TM listings from data/fake_trademe_state.json.
+- Starting state:        inventory rows 10 / TM listings 0 / listing_map rows 0
+                         (data/fake_trademe_state.json deleted and listing_map cleared after Failure 14)
+
+**Prediction** — written before injecting
+- What the sync does: An TM listing is added after run 1 completes successfully. 10 listings are succesffuly mapped so run 2 starts from that point, the extra listing is unaccounted for on either side.
+- After run 1 (failure on):   TM listings 11 / map rows 10 / duplicates 0
+- After run 2 (failure off):  TM listings 11 / map rows 10 / duplicates 0
+- Reasoning (one or two lines): The sync can't track the extra listing so the second run is unchanged.
+- Written at: 05:00 on 13/10.
+
+**Result**
+- What the sync did:     run 1 printed `local N: listing 1000001` … `1000010` for the 10 rows and mapped
+                         all 10 ("created 10, listing_map 10 rows"). `--fail 15` did nothing because the sync
+                         never reads back from Trade Me, so after run 1 I added listing 1000011 ("Listed by
+                         hand") to data/fake_trademe_state.json by hand. It has no map row and no inventory
+                         row. Run 2 printed "0 unmapped rows", made no create calls and changed nothing;
+                         1000011 stayed on Trade Me, unmapped and unnoticed.
+- After run 1:   TM listings 11 / map rows 10 / duplicates 0
+- After run 2:   TM listings 11 / map rows 10 / duplicates 0
+- Measured at: 05:11 on 13/10 (listing count from data/fake_trademe_state.json; listing_map row count;
+               duplicates = repeated titles)
+
+**Explanation**
+- Why the gap: No gap, the extra listing was added after the first 10 were mapped, so the system doesn't pick it up. 
+- What this says about my model of the sync: The system only reads the inventory and mapped row, not TM. Any changes made on the TM are not picked up.
+- One change to make (if any): Check the TM and map listings match before the next run. Flag any TM listings that don't have a map id or inventory entry.
 
 ---
 
