@@ -1617,6 +1617,45 @@ Prediction right: Y / N. Hit rate at the end = calibration for Week 3.
 
 ---
 
+#### Gate — No failure, full sync run twice
+
+**Date:** 13/10
+
+**Setup**
+- How it was run:        terminal 1: `python3 fake_trademe.py`
+                         terminal 2: `python3 sync.py`
+                         (run 2: leave the fake running, run `python3 sync.py` again)
+                         No `--fail`, so every call behaves normally.
+- Starting state:        inventory rows 10 / TM listings 0 / listing_map rows 0
+                         (data/fake_trademe_state.json deleted and listing_map cleared after Failure 15)
+
+**Prediction** — written before running
+- What the sync does: 10 listings are created and mapped in run 1, nothing changes in run 2.
+- After run 1:   TM listings 10 / map rows 10 / duplicates 0
+- After run 2:   TM listings 10 / map rows 10 / duplicates 0
+- Reasoning (one or two lines): All rows are mapped going into run 2, so no new listings are added.
+- Written at: 05:52
+
+**Result**
+- What the sync did:     run 1 printed `local N: listing 1000001` … `1000010` for the 10 rows and mapped
+                         all 10 ("created 10, listing_map 10 rows"). Run 2 printed "0 unmapped rows", made
+                         no create calls and changed nothing.
+- After run 1:   TM listings 10 / map rows 10 / duplicates 0
+- After run 2:   TM listings 10 / map rows 10 / duplicates 0
+- Measured at: 05:53 on 13/10 (listing count from data/fake_trademe_state.json; listing_map row count;
+               duplicates = repeated titles)
+
+**Explanation**
+- Why the gap: No gap. Once the TM listings and map ids are created in the first run, nothing needs to happen in the second run.
+- What this says about my model of the sync: After 1 successful run, every one after should be correct provided no unmapped listings are added and the reply from TM arrives successfully.
+- One change to make (if any): None, no errors occured.
+
+**Why idempotency doesn't cover failure 8**
+
+When no failure mode is injected into the second run, the result is the same as the first - the sync is idempotent. If a Trade Me listing is mapped successfully, the system considers the process complete and doesn't make any further changes to that row. In failure 8, when the Trade Me reply never arrives, the map id doesn't get created. Trade Me and the map are inconsistent. The sync doesn't log the TM listing going into the next run, which causes the duplication. Failure 8 resulted in 20 TM listings, 10 mapped with 10 duplications. A lost reply gives the same error regardless if a listing was created or not, the sync can't tell the difference between them. Idempotency can only prevent duplication of recorded listings, so it's not enough on its own. The fix is to compare the Trade Me listings with the map ids before starting the next run. If there is a discrepancy, cross-check it with the inventory rows and map it if it exists there.
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
