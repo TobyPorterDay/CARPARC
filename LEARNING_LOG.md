@@ -1217,7 +1217,7 @@ Fill the row in the same sitting as the block.
 | 11 | Request times out, Trade Me is slow |  |  |  |
 | 12 | Token expires partway through a run |  |  |  |
 | 13 | Same item sent twice |  |  |  |
-| 14 | Trade Me says success, listing never appears |  |  |  |
+| 14 | Trade Me says success, listing never appears | run 1: 0 / 10 / 0; run 2: 0 / 0 / 0 | run 1: 0 / 10 / 0; run 2: 0 / 10 / 0 | N |
 | 15 | Trade Me has a listing that isn't mapped after a sync |  |  |  |
 
 Prediction right: Y / N. Hit rate at the end = calibration for Week 3.
@@ -1542,36 +1542,39 @@ Prediction right: Y / N. Hit rate at the end = calibration for Week 3.
 
 ---
 
-#### Failure 9 — A rate limit is activated by Trade Me
+#### Failure 14 — Trade Me says it succeeded, but the listing never appears
 
-**Date:**
+**Date:** 13/10
 
 **Setup**
-- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 9`
+- How it was injected:   terminal 1: `python3 fake_trademe.py --fail 14`
                          terminal 2: `python3 sync.py`
                          (run 2: stop the fake, restart with `python3 fake_trademe.py`, run `python3 sync.py` again)
-                         Hits every call, read-back included, so count run 1's TM listings from
-                         data/fake_trademe_state.json (absent = 0).
+                         Hits create calls only, so read-back works normally in run 1.
 - Starting state:        inventory rows 10 / TM listings 0 / listing_map rows 0
                          (data/fake_trademe_state.json deleted and listing_map cleared after Failure 8)
 
 **Prediction** — written before injecting
-- What the sync does:
-- After run 1 (failure on):   TM listings __ / map rows __ / duplicates __
-- After run 2 (failure off):  TM listings __ / map rows __ / duplicates __
-- Reasoning (one or two lines):
-- Written at:
+- What the sync does: The sync maps the 10 rows, but no TM listings will be created.
+- After run 1 (failure on):   TM listings 0 / map rows 10 / duplicates 0
+- After run 2 (failure off):  TM listings 0 / map rows 0 / duplicates 0
+- Reasoning (one or two lines): A successful reply and a listing id comes back from TM, so the system proceeds as normal.
+- Written at: 04:16 on 13/10.
 
 **Result**
-- What the sync did:
-- After run 1:   TM listings __ / map rows __ / duplicates __
-- After run 2:   TM listings __ / map rows __ / duplicates __
-- Measured at:
+- What the sync did:     run 1 printed `local N: listing 1000001` … `1000010` for the 10 rows and mapped
+                         those Ids ("created 10, listing_map 10 rows"). Trade Me stored none of them
+                         (0 listings, next_id 1000011), so all 10 mapped Ids point at nothing. Run 2 printed
+                         "0 unmapped rows", made no create calls and changed nothing.
+- After run 1:   TM listings 0 / map rows 10 / duplicates 0
+- After run 2:   TM listings 0 / map rows 10 / duplicates 0
+- Measured at: 04:19 on 13/10 (listing count from data/fake_trademe_state.json; listing_map row count;
+               duplicates = repeated titles)
 
 **Explanation**
-- Why the gap:
-- What this says about my model of the sync:
-- One change to make (if any):
+- Why the gap: The 10 mapped rows were unchanged in the second run. The sync doesn't check TM, only the map ids. Nothing further is done after the map ids are loaded. 
+- What this says about my model of the sync: I thought the second run wouldn't print anything because it would read the TM listing ids and stop there. It doesn't remove mapped rows either.
+- One change to make (if any): Confirm the listing exists on TM before writing the map id.
 
 ---
 
