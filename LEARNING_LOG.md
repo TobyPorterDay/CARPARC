@@ -1522,7 +1522,7 @@ Prediction right: Y / N. Hit rate at the end = calibration for Week 3.
 - After run 1 (failure on):   TM listings 10 / map rows 0 / duplicates 0
 - After run 2 (failure off):  TM listings 20 / map rows 0 / duplicates 10
 - Reasoning (one or two lines): No map listings are created, the second run duplicates all 10.
-- Written at: 21:32 on 12/10
+- Written at: 21:31 on 12/10
 
 **Result**
 - What the sync did:     run 1 printed `local N: ConnectionError` for each of the 10 rows, left them all

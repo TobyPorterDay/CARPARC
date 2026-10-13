@@ -103,6 +103,25 @@ predictions, because every decision is made at a similarity of exactly 100 once
 punctuation is normalised away. The gain over Rep 1 came from normalisation, not
 from fuzzy matching.
 
+## Sync errors
+
+Each failure injected into the fake Trade Me, with the cause, whether the
+customer can fix it, and what support should tell them. Evidence for every row
+is in LEARNING_LOG.md.
+
+| # | Failure | Cause | Customer-fixable? | Support message | Status |
+|---|---|---|---|---|---|
+| 1 | Ping is down, so Trade Me rejects new listings | Trade Me requires Ping on every marketplace listing, and Ping is unavailable on the sandbox, so it rejects every create. | No | Ping is down. Please try again later | known |
+| 2 | Internet connection goes down before the request reaches Trade Me | The connection drops before the request reaches Trade Me, so Trade Me never sees it. | Yes | Your request failed. Please reconnect to the internet and try again | known |
+| 3 | The listing map shows a listing that's not on Trade Me | The sync reads only the listing map, not Trade Me, so it never compares mapped rows to Trade Me. | No | Trade Me hasn't saved a listing. Please don't run the sync again. Contact support to check your listings. | known |
+| 4 | The authorisation header is wrong | The saved Trade Me login is wrong or out of date, so Trade Me rejects every call. | Yes | Your request failed. Try logging out of your Trade Me account, then log back in and try again | known |
+| 5 | Trade Me's own servers are down | Trade Me's servers are down for maintenance, so every call gets a 503. | No | Your request failed. Please try again later | known |
+| 6 | The new Trade Me listing sends the wrong Id | The sync trusts every reply from Trade Me, so it maps the wrong Id without raising an alarm. | No | The Trade Me listing was saved incorrectly. Please don't run the sync again. Contact support to correct the listing. | known |
+| 7 | Trade Me sends back the wrong JSON content | The sync only catches errors on the way to Trade Me, not on the way back, so a bad reply crashes the run after the listing is created. | No | The Trade Me listing was saved incorrectly. Please don't run the sync again. Contact support to check for a duplicate. | known |
+| 8 | Trade Me saves the listing, but the reply never reaches me (connection drops after the request arrives) | The sync can't tell a lost reply from a request that never arrived (same error as failure 2), so a retry without checking Trade Me duplicates the listings. | No | The sync didn't save correctly, please don't run it again and contact support | known |
+| 14 | Trade Me says it succeeded, but the listing never appears | The sync treats a success reply and a ListingId as proof the listing exists, and never removes mapped rows. | No | Trade Me didn't save the listing. Please contact support to re-create the listing. | known |
+| 15 | Trade Me shows a listing that is not mapped after a sync | The sync reads only the inventory and the listing map, not Trade Me, so changes made on Trade Me are not picked up. | No | The Trade Me listing didn't save correctly. Please contact support to check the extra listing on Trade Me. | known |
+
 ## Limitations
 
 - TODO: label-noise ceiling — measured Week 4, caps everything above.
