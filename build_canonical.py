@@ -10,7 +10,7 @@ DuckDB reads .csv, .csv.gz and .csv.zst but NOT .zip, so a zip is expanded
 first — to .csv.gz, which is a third of the disk of a plain .csv and which
 DuckDB reads directly. The expansion happens once; later runs reuse it.
 
-Output: data/mvr_canonical_vehicles.csv — one row per distinct MAKE|MODEL with
+Output: nz_vehicle_resolver/data/mvr_canonical_vehicles.csv — one row per distinct MAKE|MODEL with
 fleet count, used-import count and vehicle-year range. Aggregation is in SQL;
 5.8M rows never enter Python.
 
@@ -33,7 +33,7 @@ import zipfile
 import duckdb
 
 SRC_DIR = "data/mvr"
-OUT = "data/mvr_canonical_vehicles.csv"
+OUT = "nz_vehicle_resolver/data/mvr_canonical_vehicles.csv"
 MIN_FLEET = 10
 
 

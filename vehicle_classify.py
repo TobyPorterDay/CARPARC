@@ -90,8 +90,10 @@ import re
 
 from rapidfuzz import fuzz, process
 
-CANONICAL_PATH = "data/mvr_canonical_vehicles.csv"
-ALIAS_PATH = "data/alias_vehicles.csv"
+# Anchored to this file so the paths hold whatever the working directory is.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+CANONICAL_PATH = os.path.join(_HERE, "nz_vehicle_resolver/data/mvr_canonical_vehicles.csv")
+ALIAS_PATH = os.path.join(_HERE, "nz_vehicle_resolver/data/alias_vehicles.csv")
 FUZZY_THRESHOLD = 95
 # Longest run of adjacent listing words compared against one make or model.
 # The longest canonical model is 4 words ("3 SERIES GRAN TURISMO").
@@ -565,7 +567,9 @@ def distinct_name_match(title, threshold=FUZZY_THRESHOLD):
 
 LLM_MODEL = "claude-opus-5"
 LLM_FALLBACK_MODEL = "claude-opus-4-8"
-LLM_CACHE_PATH = "data/rep4_llm_cache.json"
+LLM_CACHE_PATH = os.environ.get("NZ_VEHICLE_RESOLVER_CACHE") or os.path.join(
+    _HERE, "nz_vehicle_resolver/data/rep4_llm_cache.json"
+)
 LLM_FIELDS = ("make", "model", "chassis")
 
 LLM_SYSTEM = """\

@@ -29,7 +29,7 @@ import csv
 import os
 import sys
 
-CANON = "data/mvr_canonical_vehicles.csv"
+CANON = "nz_vehicle_resolver/data/mvr_canonical_vehicles.csv"
 DEFAULT_GOLD = "data/gold_vehicles_dev.csv"
 PAGE = 12
 

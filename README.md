@@ -19,7 +19,24 @@ resolve(s: str) -> CanonicalVehicle | None
 resolve_batch(strings: Iterable[str]) -> list[CanonicalVehicle | None]
 ```
 
-That is the entire public surface. Nothing else ships in v0.1.0.
+That is the entire public surface (plus the `CanonicalVehicle(make, model)`
+return type). Nothing else ships in v0.1.0.
+
+```bash
+python3 -m pip install -e .
+```
+
+`resolve` is Rep 5 (see Results): an LLM copies the make, model and chassis
+code out of the string, the alias/fuzzy matcher looks them up, and any contested
+answer is `None`. On the 100 dev titles it answers 92 and is right on all 92.
+
+**API key and cache.** The package ships the LLM's recorded answers for the 100
+dev titles, so those resolve identically with no key. Any other string needs
+`ANTHROPIC_API_KEY`, in the environment or in a `.env` file in the working
+directory. Each new answer is recorded in `~/.cache/nz-vehicle-resolver/llm_cache.json`
+(override with `NZ_VEHICLE_RESOLVER_CACHE`) and reused on every later call; the
+shipped answers win if both hold a title. An LLM call that fails raises an
+error rather than returning `None`.
 
 ## Data
 
@@ -34,14 +51,18 @@ That is the point: it is a genuinely dirty national-scale canonical side.
 
 ### Building the canonical table
 
-The register is not redistributed here. Download it and build:
+The raw register (309MB) is not in the repo, but the derived canonical table
+(`fleet_count >= 10`, 12,728 pairs) ships in `nz_vehicle_resolver/data/` with
+the alias table, so the package works without it, under CC-BY 4.0 with
+attribution to NZ Transport Agency Waka Kotahi. To rebuild the table, download
+the register and run:
 
 ```bash
 # ~309MB, all 37 vehicle years
 curl -L -o data/mvr/Fleet-data-all-vehicle-years.zip \
   https://wksprdgisopendata.blob.core.windows.net/motorvehicleregister/Fleet-data-all-vehicle-years.zip
 
-python3 build_canonical.py        # -> data/mvr_canonical_vehicles.csv
+python3 build_canonical.py        # -> nz_vehicle_resolver/data/mvr_canonical_vehicles.csv
 ```
 
 The zip is expanded once to `.csv.gz` (DuckDB reads `.csv`, `.csv.gz` and

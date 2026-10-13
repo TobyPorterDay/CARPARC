@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nz-vehicle-resolver"
+version = "0.1.0.dev0"
+description = "Resolve messy NZ vehicle strings to canonical Motor Vehicle Register records"
+requires-python = ">=3.10"
+dependencies = ["rapidfuzz==3.14.6", "anthropic"]
+
+[tool.setuptools]
+packages = ["nz_vehicle_resolver"]
+py-modules = ["vehicle_classify"]
+
+[tool.setuptools.package-data]
+nz_vehicle_resolver = ["data/*.csv", "data/*.json"]
