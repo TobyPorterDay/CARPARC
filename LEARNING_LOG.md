@@ -1656,6 +1656,46 @@ When no failure mode is injected into the second run, the result is the same as 
 
 ---
 
+## Week 4 — Label noise
+
+### Label noise — Re-label 30 dev rows blind
+
+**Date:**
+
+**Setup**
+- Sheet:                 `data/relabel_dev_30.csv`: 30 dev listings (random, seed 2026), labels blank
+- Originals:             `data/gold_vehicles_dev.csv`. Not opened from now until the comparison.
+- Labelling rules:       current rules. Leave a field blank where `resolve()` should return None.
+- Match rule:            same after trimming spaces and ignoring case. Blank = blank counts as a match.
+
+**Prediction**: written before re-labelling
+- Make + Model agreement:          29 / 30  (96%)
+- Full agreement (incl. Variant):  28 / 30  (93%)
+- Reasoning (one or two lines): Average errors across the 100 row sample divided by 3.33
+- Written at: 07:34 on 14/10
+
+**Result**
+- Make + Model agreement:          __ / 30  (__%)   Wilson 95%: __–__%
+- Full agreement (incl. Variant):  __ / 30  (__%)   Wilson 95%: __–__%
+- Measured at: [time]
+
+**Disagreements**: read every one
+
+| Listing | Original | New | Tag (old wrong / new wrong / rule ambiguous) |
+|---|---|---|---|
+|  |  |  |  |
+
+- Old label wrong:     __
+- New label wrong:     __
+- Rule ambiguous:      __
+
+**Explanation**
+- Why the gap:
+- What this says about my labels:
+- Held-out ceiling: no held-out score above ~__% is distinguishable from label noise.
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
