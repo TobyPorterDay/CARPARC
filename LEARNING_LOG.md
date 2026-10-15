@@ -1696,6 +1696,52 @@ I expected some of the error-causing rows to be in the sample, which is the reas
 
 ---
 
+### Held-out relabel — current rules
+
+**Date:** 16/10
+
+**Setup**
+- Sheet:                 `data/gold_vehicles_heldout.csv`, 100 rows. Converted from `Listing,Label` to `Listing,Make,Model,Variant` (Label split on `|`, Variant blank) before this entry. Old labels: git history.
+- Why:                   held-out labels follow the pre-19/09 rules. This is the extra look at held-out logged in METHODOLOGY_REVIEW §6.
+- Not run on it:         no approach, `resolve()`, harness or error sampling. Held-out stays unscored until task 8.
+- Labelling rules:       current rules.
+  - Model = parent line. Variant = sub-model, only if the listing contains one.
+  - JDM/export: cut table has the listing's name → use it. Otherwise → the register's name for the same vehicle.
+  - No register vehicle fits → Make `NONE`, Model and Variant blank.
+  - Make and Model spelled exactly as the cut table spells them (`mvr_canonical_vehicles.csv`).
+- Seen before the prediction: a format check during conversion printed the old-rules `NONE` count (3 / 100). No other held-out labels were shown.
+
+**Prediction**: written before opening the sheet
+- Rows changed by the new rules:  0 / 100
+- Reasoning (one or two lines): There were no changed rows during the previous relabeling.
+- Written at: 04:12 on 16/10
+
+**Result**
+- Rows changed:                    2 / 100
+  - Model/variant rule:            2
+  - JDM/export rule:               0
+  - Became / stopped being `NONE`: 0
+  - Other (say what):              0
+- `NONE` rows after relabel:       3 / 100   (dev: 1 / 100)
+- Rows with a variant:             2 / 100   (dev: 5 / 100)
+- Rows in the 40 alias-table families: 23 / 100
+- Labels not in the cut table:     0 / 100
+- Measured at: 04:33 on 16/10
+- First pass changed 6 rows. 4 were reverted because the new labels weren't in the cut table: `MS8` (×2, table has `MS-8`), `MARK X` (table has `MARKX`), `EMMERAUDE` (not in table → `GALANT`, same as dev's E52A row).
+
+**Changed rows**: list every one
+
+| Listing | Old | New | Rule |
+|---|---|---|---|
+| Dodge Ram 2500 - 02-08 | DODGE\|RAM | DODGE\|RAM, variant 2500 | Model/variant |
+| BMW 3 Series E36 - 323Ti | BMW\|323 | BMW\|3 SERIES, variant 323Ti | Model/variant |
+
+**Explanation**
+- Why the gap: The two changed rows had variants that weren't recorded the first time around.
+- What this says about the held-out set vs dev: The addition of variants is the only key change from the current rules. The BMW row now has a different model because the old one became the variant.	
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
@@ -1718,6 +1764,7 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 2 | 5 coverage | 94% | 92% | -2pp |
 | 4 | label noise Make+Model | 96.7% | 100% | +3.3pp |
 | 4 | label noise full | 93.3% | 100% | +6.7pp |
+| 4 | held-out relabel, rows changed | 0 / 100 | 2 / 100 | +2 rows |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
