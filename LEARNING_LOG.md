@@ -1742,6 +1742,54 @@ I expected some of the error-causing rows to be in the sample, which is the reas
 
 ---
 
+### Held-out run — packaged `resolve()`, once
+
+**Date:** 16/10
+
+**Setup**
+- Data:            `data/gold_vehicles_heldout.csv`, 100 rows, relabelled to current rules (commit: 02f8854)
+- System:          `nz_vehicle_resolver.resolve_batch()` as packaged — Rep 5, threshold 0.9 (code commit: 8b92342)
+- Scored on:       Make + Model. `resolve()` returns no Variant.
+- Correct:         prediction matches gold Make + Model. Gold `NONE` + output `None` = correct.
+- LLM calls:       held-out titles are not in the shipped cache, so every row is a new LLM call.
+- Runs allowed:    one. A second run is not a result.
+- Seen before the prediction: Nothing
+
+**Prediction**: written before running
+- Score (correct / 100):           90 / 100
+- Precision (correct / answered):  88 / 88
+- Coverage (answered / 100):       88 / 100
+- Reasoning (one or two lines): The live-LLM extract will likely cause a few new errors. I don't expect many more NONE labels given the confidence threshold is 0.9.
+- Written at: 05:53 on 16/10
+
+**Result**
+- Score:      __ / 100   Wilson 95%: __–__%
+- Precision:  __ / __    Wilson 95%: __–__%
+- Coverage:   __ / 100   Wilson 95%: __–__%
+- Signed error, score:      __pp
+- Signed error, precision:  __pp
+- Signed error, coverage:   __pp
+- Measured at: __:__ on __/10
+
+**Errors**: read every one
+
+| Listing | Gold | Predicted |
+|---|---|---|
+|  |  |  |
+
+**Error categories**
+| # | Category | Seen on dev? | Count | Example |
+|---|---|---|---|---|
+|  |  |  |  |  |
+Uncategorised / other: 
+
+**Explanation**
+- Why the gap: 
+- Held-out vs dev Rep 5 (93 / 100): 
+- Held-out score vs label-noise ceiling (Wilson lower bound 89%): 
+
+---
+
 ## Calibration table
 
 Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
@@ -1765,6 +1813,9 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 4 | label noise Make+Model | 96.7% | 100% | +3.3pp |
 | 4 | label noise full | 93.3% | 100% | +6.7pp |
 | 4 | held-out relabel, rows changed | 0 / 100 | 2 / 100 | +2 rows |
+| 4 | held-out score |  |  |  |
+| 4 | held-out precision |  |  |  |
+| 4 | held-out coverage |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
