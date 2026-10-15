@@ -1751,9 +1751,9 @@ I expected some of the error-causing rows to be in the sample, which is the reas
 - System:          `nz_vehicle_resolver.resolve_batch()` as packaged — Rep 5, threshold 0.9 (code commit: 8b92342)
 - Scored on:       Make + Model. `resolve()` returns no Variant.
 - Correct:         prediction matches gold Make + Model. Gold `NONE` + output `None` = correct.
-- LLM calls:       held-out titles are not in the shipped cache, so every row is a new LLM call.
+- LLM calls:       99 new LLM calls. Held-out titles are not in the shipped cache; `Toyota Celsoir - UCF10` was already in the user cache from the smoke test.
 - Runs allowed:    one. A second run is not a result.
-- Seen before the prediction: Nothing
+- Seen before the prediction: `Toyota Celsoir - UCF10` resolved once in a smoke test before the prediction; its output was not compared to gold.
 
 **Prediction**: written before running
 - Score (correct / 100):           90 / 100
@@ -1763,25 +1763,51 @@ I expected some of the error-causing rows to be in the sample, which is the reas
 - Written at: 05:53 on 16/10
 
 **Result**
-- Score:      __ / 100   Wilson 95%: __–__%
-- Precision:  __ / __    Wilson 95%: __–__%
-- Coverage:   __ / 100   Wilson 95%: __–__%
-- Signed error, score:      __pp
-- Signed error, precision:  __pp
-- Signed error, coverage:   __pp
-- Measured at: __:__ on __/10
+- Score:      86 / 100   Wilson 95%: 77.9–91.5%
+- Precision:  83 / 87    Wilson 95%: 88.8–98.2%
+- Coverage:   87 / 100   Wilson 95%: 79.0–92.2%
+- Signed error, score:      -4pp (90 → 86)
+- Signed error, precision:  -4.6pp (88/88 = 100% → 83/87 = 95.4%)
+- Signed error, coverage:   -1pp (88 → 87)
+- Measured at: 06:46 on 16/10
+
+Run as a print-only script: the LLM answers were not kept, so this run cannot
+be reproduced, and causes below are read from the register data
+(mvr_canonical_vehicles.csv, alias_vehicles.csv), not traced through the run.
+Gold `NONE` rows (3): Safari, Lexus All Series, Chrysler Other — all output `None`.
 
 **Errors**: read every one
 
 | Listing | Gold | Predicted |
 |---|---|---|
-|  |  |  |
+| Honda CRV - RD4-RD8 2002-2006 | HONDA\|CR-V | HONDA\|CRV |
+| Suzuki Cultus - GC21W 1995-2003 | SUZUKI\|CULTUS | SUZUKI\|SWIFT |
+| Toyota Vitz - NCP91 RS | TOYOTA\|VITZ | TOYOTA\|YARIS |
+| Toyota Vitz - KSP90 | TOYOTA\|VITZ | TOYOTA\|YARIS |
+| Mazda RX7 - FD3S 1992-2002 | MAZDA\|RX7 | NONE |
+| Mazda B2000 - 1985-1991 | MAZDA\|B2000 | NONE |
+| Porsche Cayenne S - Cayenne S 2003-2006 | PORSCHE\|CAYENNE S | NONE |
+| Isuzu MU-X - UCS40 2020- | ISUZU\|MU-X | NONE |
+| Isuzu Elf - NPR | ISUZU\|ELF | NONE |
+| Jeep Grand Cherokee - WK2 11- | JEEP\|GRAND CHEROKEE | NONE |
+| Mazda Bounty - BT50 | MAZDA\|BOUNTY | NONE |
+| Dodge Ram 2500 - 02-08 | DODGE\|RAM | NONE |
+| Mitsubishi Emmeraude - E53A 1992-1997 | MITSUBISHI\|GALANT | NONE |
+| Toyota Celsoir - UCF10 | TOYOTA\|CELSIOR | NONE |
 
 **Error categories**
 | # | Category | Seen on dev? | Count | Example |
 |---|---|---|---|---|
-|  |  |  |  |  |
-Uncategorised / other: 
+| 1 | Punctuation collision: the register holds the same vehicle under two spellings (CRV / CR-V, RX7 / RX-7, B2000 / B 2000); one wrong label, two abstentions | Yes (dev #1) | 3 | Honda CRV - RD4-RD8 2002-2006, gold=HONDA\|CR-V, predicted=HONDA\|CRV |
+| 2 | Alias row joins the JDM and export names (SWIFT;CULTUS, YARIS;VITZ) and the export name was picked, but the register holds both as separate models and gold uses the JDM one | No | 3 | Toyota Vitz - KSP90, gold=TOYOTA\|VITZ, predicted=TOYOTA\|YARIS |
+| 3 | Nested model names: the gold model sits inside or around another register model (CAYENNE / CAYENNE S, MU / MU-X, ELF / ELF 150 / ELF 250, CHEROKEE / GRAND CHEROKEE), so confidence fell below 0.9 | No | 4 | Porsche Cayenne S - Cayenne S 2003-2006, gold=PORSCHE\|CAYENNE S, predicted=NONE |
+| 4 | Text after the dash names another register model (BT50 → MAZDA\|BT-50), so the right answer tied with a spurious candidate | Yes (dev #9) | 1 | Mazda Bounty - BT50, gold=MAZDA\|BOUNTY, predicted=NONE |
+| 5 | A make named inside the listing ties with the actual make (RAM\|2500 vs DODGE\|RAM) | Yes (dev #4) | 1 | Dodge Ram 2500 - 02-08, gold=DODGE\|RAM, predicted=NONE |
+| 6 | Listing uses the JDM name, the register uses the export name, no string match is possible | Yes (dev #2) | 1 | Mitsubishi Emmeraude - E53A 1992-1997, gold=MITSUBISHI\|GALANT, predicted=NONE |
+| 7 | Misspelt model name in the listing (Celsoir for CELSIOR) | No | 1 | Toyota Celsoir - UCF10, gold=TOYOTA\|CELSIOR, predicted=NONE |
+Uncategorised / other: 0
+
+Balances: 3 + 3 + 4 + 1 + 1 + 1 + 1 = 14 = 100 − 86. Wrong labels: 4 (categories 1, 2); abstentions on a non-NONE gold: 10.
 
 **Explanation**
 - Why the gap: 
@@ -1813,9 +1839,9 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 4 | label noise Make+Model | 96.7% | 100% | +3.3pp |
 | 4 | label noise full | 93.3% | 100% | +6.7pp |
 | 4 | held-out relabel, rows changed | 0 / 100 | 2 / 100 | +2 rows |
-| 4 | held-out score |  |  |  |
-| 4 | held-out precision |  |  |  |
-| 4 | held-out coverage |  |  |  |
+| 4 | held-out score | 90% | 86% | -4pp |
+| 4 | held-out precision | 100% | 95.4% | -4.6pp |
+| 4 | held-out coverage | 88% | 87% | -1pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
