@@ -1660,12 +1660,12 @@ When no failure mode is injected into the second run, the result is the same as 
 
 ### Label noise — Re-label 30 dev rows blind
 
-**Date:**
+**Date:** 14/10 (prediction) – 15/10 (labels, comparison)
 
 **Setup**
 - Sheet:                 `data/relabel_dev_30.csv`: 30 dev listings (random, seed 2026), labels blank
 - Originals:             `data/gold_vehicles_dev.csv`. Not opened from now until the comparison.
-- Labelling rules:       current rules. Leave a field blank where `resolve()` should return None.
+- Labelling rules:       current rules. No register vehicle fits → Make `NONE`, Model and Variant blank. Variant only if the listing contains one.
 - Match rule:            same after trimming spaces and ignoring case. Blank = blank counts as a match.
 
 **Prediction**: written before re-labelling
@@ -1675,24 +1675,24 @@ When no failure mode is injected into the second run, the result is the same as 
 - Written at: 07:34 on 14/10
 
 **Result**
-- Make + Model agreement:          __ / 30  (__%)   Wilson 95%: __–__%
-- Full agreement (incl. Variant):  __ / 30  (__%)   Wilson 95%: __–__%
-- Measured at: [time]
+- Make + Model agreement:          30 / 30  (100%)   Wilson 95%: 89–100%
+- Full agreement (incl. Variant):  30 / 30  (100%)   Wilson 95%: 89–100%
+- Measured at: 20:27 on 15/10 (re-labels committed first, 224d892)
+- Sample mix: 0 of 30 rows have a variant, 0 are `NONE`, 0 need a JDM→export translation.
+  Every row has the shape `Make Model - code`.
 
 **Disagreements**: read every one
 
-| Listing | Original | New | Tag (old wrong / new wrong / rule ambiguous) |
-|---|---|---|---|
-|  |  |  |  |
+None. All 30 rows match on Make, Model and Variant.
 
-- Old label wrong:     __
-- New label wrong:     __
-- Rule ambiguous:      __
+- Old label wrong:     0
+- New label wrong:     0
+- Rule ambiguous:      0
 
 **Explanation**
-- Why the gap:
-- What this says about my labels:
-- Held-out ceiling: no held-out score above ~__% is distinguishable from label noise.
+
+My hand-labels are consistent with the ones I did at the start of the project. These were straight forward rows with no variant, a JDM name or a NONE row, so my judgement on those wasn't tested.
+I expected some of the error-causing rows to be in the sample, which is the reason for the predicted errors and the gap to the actual results. Held-out ceiling line is 89%.
 
 ---
 
@@ -1716,6 +1716,8 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 2 | 5 | 92% | 93% | +1pp |
 | 2 | 5 precision | 97.9% | 100% | +2.1pp |
 | 2 | 5 coverage | 94% | 92% | -2pp |
+| 4 | label noise Make+Model | 96.7% | 100% | +3.3pp |
+| 4 | label noise full | 93.3% | 100% | +6.7pp |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |

@@ -146,6 +146,13 @@ is in LEARNING_LOG.md.
 ## Limitations
 
 - TODO: label-noise ceiling — measured Week 4, caps everything above.
+- Self-agreement doesn't show a label is correct, only that it's repeatable.
+  Two dev rows agree across both labelling passes but are doubtful (flagged in
+  coach review, not by the labeller):
+  - `Toyota Corolla 11 - EL30` is labelled TOYOTA|COROLLA. The register has no
+    Corolla II but does have TERCEL, so the JDM rule may give TOYOTA|TERCEL.
+  - `Lexus RX350 - GGL15`: the register holds both RX and RX350, so the
+    parent-line rule doesn't settle which is the model.
 - TODO: held-out independence — the split is random over distinct vehicle
   strings, but strings from one make are not independent of each other.
 - The canonical cut discards long-tail pairs. Note that the tail is not all
