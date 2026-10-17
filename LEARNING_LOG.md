@@ -1810,9 +1810,9 @@ Uncategorised / other: 0
 Balances: 3 + 3 + 4 + 1 + 1 + 1 + 1 = 14 = 100 − 86. Wrong labels: 4 (categories 1, 2); abstentions on a non-NONE gold: 10.
 
 **Explanation**
-- Why the gap: 
-- Held-out vs dev Rep 5 (93 / 100): 
-- Held-out score vs label-noise ceiling (Wilson lower bound 89%): 
+- Why the gap: The following new error categories is the cause of the gap. Rows with a merged export/JDM model name in the alias table are defaulting to the export name when they both exist in the NZTA registry. A gold model name being closer to another one in the registry, e.g. Porche Cayenne tied with Porche Cayenne S, which resulted in NONE. A mispelt model name in the listing not matching to registry model.
+- Held-out vs dev Rep 5 (93 / 100): 8 of the errors never came up during the dev testing, so they couldn't be addressed.
+- Held-out score vs label-noise ceiling (Wilson lower bound 89%): My hand labels were consistent, so that means the pipeline doesn't match my thought process yet.
 
 ---
 
