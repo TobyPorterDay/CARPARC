@@ -143,6 +143,10 @@ is in LEARNING_LOG.md.
 | 14 | Trade Me says it succeeded, but the listing never appears | The sync treats a success reply and a ListingId as proof the listing exists, and never removes mapped rows. | No | Trade Me didn't save the listing. Please contact support to re-create the listing. | known |
 | 15 | Trade Me shows a listing that is not mapped after a sync | The sync reads only the inventory and the listing map, not Trade Me, so changes made on Trade Me are not picked up. | No | The Trade Me listing didn't save correctly. Please contact support to check the extra listing on Trade Me. | known |
 
+## Cost
+
+Cost per call on new strings is $0.0032. Cost per 1000 calls is $3.23. Strings that have already been processed by the pipeline are cached so there is no additional cost to running them again. Blank strings don't trigger an LLM call, so there is no cost. A "None" output still costs API credits because the LLM call occurs when the string is input into the pipeline, not during the output. If a large amount of listings needed to be processed, lowering the model to Sonnet 5.5 should be considered.
+
 ## Limitations
 
 - TODO: label-noise ceiling — measured Week 4, caps everything above.
