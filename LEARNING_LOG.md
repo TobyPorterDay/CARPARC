@@ -1124,7 +1124,13 @@ Not a rep: nothing in the system changed, no prediction, no calibration row.
 - Written up while drafting it: the held-out set still carries the pre-19/09
   labelling rules and will be relabelled to the current rules before the Week 4
   run (logged as an extra look); the JDM/export rule is now in vocab.md.
-- Replies and what changed because of them: TODO — log when they arrive.
+- Replies:
+  1. The confidence threshold for returning a make and model should be 95%+.
+  2. Adding steps that analyse the listing's description and photo would help
+     improve accuracy.
+- What changed because of them: nothing. Both arrived after the reps closed;
+  Rep 5 abstains on ties and outputs no graded confidence, and description/photo
+  input is outside the two-function scope.
 
 ---
 
@@ -1864,7 +1870,7 @@ Balances: 3 + 3 + 4 + 1 + 1 + 1 + 1 = 14 = 100 − 86. Wrong labels: 4 (categori
 
 ## Calibration table
 
-Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).
+Signed error = observed − predicted. Positive = under-predicted (pessimistic). Negative = over-predicted (optimistic).  
 
 Fill the row at the same time as the entry. Never backfill from memory.
 

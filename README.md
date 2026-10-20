@@ -159,6 +159,7 @@ Cut from scope to ship v0.1.0:
 - No screen capture.
 - No separate eval red-team. This section replaces it.
 - The cost model is one paragraph, not a full model.
+- SPEC.md was not sent for external critique, so the spec is ungraded.
 
 Measurement:
 
@@ -177,7 +178,7 @@ Measurement:
 - Held-out independence: the split is random over distinct vehicle strings,
   but strings from one make or model line are not independent of each other,
   so dev and held-out share patterns. 8 of the 14 held-out errors were types
-  never seen in dev; the score would likely fall further on a set drawn from a
+  never seen in dev so the score would likely fall further on a set drawn from a
   different source.
 - The canonical cut discards long-tail pairs. Note that the tail is not all
   noise: pre-1990 vehicles are 6.5% of the fleet but 26% of distinct pairs,
