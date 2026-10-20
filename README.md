@@ -85,8 +85,9 @@ CARPARC_GOLD=data/gold_vehicles_dev.csv python3 harness.py
 ## Gold set
 
 200 vehicles drawn from the corpus with a fixed seed, split 100 dev / 100
-held-out. **The held-out set is touched exactly twice: once at labelling, once
-in Week 4.**
+held-out. **The held-out set was touched three times: at labelling, when it was
+re-labelled to the current rules in Week 4, and for the single Week 4 run.**
+The re-label showed the old-rules `NONE` count (3 / 100); nothing was run on it.
 
 ```bash
 python3 sample_gold.py            # seeded, refuses to overwrite
@@ -149,7 +150,23 @@ Cost per call on new strings is $0.0032. Cost per 1000 calls is $3.23. Strings t
 
 ## Limitations
 
-- TODO: label-noise ceiling — measured Week 4, caps everything above.
+Cut from scope to ship v0.1.0:
+
+- Failures 9–13 of the planned 15 were not exercised (13 is covered by the run-twice check).
+- Week 3 failures were predicted, observed and logged, not fixed. Unfixed ones are marked "known".
+- No reconciliation job.
+- No reliability curve. Rep 5 abstains on ties and gives no graded confidence.
+- No screen capture.
+- No separate eval red-team. This section replaces it.
+- The cost model is one paragraph, not a full model.
+
+Measurement:
+
+- Label-noise ceiling: blind re-label of 30 dev rows agreed 30 / 30 (Wilson 95%:
+  89–100%). Held-out score is 86 / 100 (77.9–91.5%). The intervals overlap, so
+  at this sample size the score is not shown to be below the ceiling. The 30
+  rows were all simple (no variant, no `NONE`, no JDM name), so the ceiling
+  says nothing about the hard rows.
 - Self-agreement doesn't show a label is correct, only that it's repeatable.
   Two dev rows agree across both labelling passes but are doubtful (flagged in
   coach review, not by the labeller):
@@ -157,17 +174,22 @@ Cost per call on new strings is $0.0032. Cost per 1000 calls is $3.23. Strings t
     Corolla II but does have TERCEL, so the JDM rule may give TOYOTA|TERCEL.
   - `Lexus RX350 - GGL15`: the register holds both RX and RX350, so the
     parent-line rule doesn't settle which is the model.
-- TODO: held-out independence — the split is random over distinct vehicle
-  strings, but strings from one make are not independent of each other.
+- Held-out independence: the split is random over distinct vehicle strings,
+  but strings from one make or model line are not independent of each other,
+  so dev and held-out share patterns. 8 of the 14 held-out errors were types
+  never seen in dev; the score would likely fall further on a set drawn from a
+  different source.
 - The canonical cut discards long-tail pairs. Note that the tail is not all
   noise: pre-1990 vehicles are 6.5% of the fleet but 26% of distinct pairs,
-  and 44,338 pairs appear nowhere after 1989. Re-check in Week 4 whether the
-  cut deletes classics the corpus actually contains.
+  and 44,338 pairs appear nowhere after 1989. Whether the cut deletes classics
+  the corpus actually contains was not checked.
 - The register carries punctuated and unpunctuated spellings of the same model
   as separate canonical rows (`CR-V` and `CRV`, `MX-5` and `MX5`). Once
   punctuation is normalised the two are indistinguishable, so which row wins is
-  decided by the tie-break, not by the match. TODO: quantify how many of the
-  12,728 pairs collide this way.
+  decided by the tie-break, not by the match. 625 groups collide this way,
+  covering 1,334 of the 12,728 pairs (10.5%). Most are trailer models
+  (HOMEBUILT / HOME BUILT); HONDA CRV / CR-V is the largest vehicle group. On
+  held-out this caused 1 wrong label and 2 abstentions.
 - Partsworld's catalogue is semi-structured (`Make Model - Variant`), so it is
   a cleaner noisy side than free-text marketplace listings would be.
 

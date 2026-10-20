@@ -1814,6 +1814,52 @@ Balances: 3 + 3 + 4 + 1 + 1 + 1 + 1 = 14 = 100 − 86. Wrong labels: 4 (categori
 - Held-out vs dev Rep 5 (93 / 100): 8 of the errors never came up during the dev testing, so they couldn't be addressed.
 - Held-out score vs label-noise ceiling (Wilson lower bound 89%): My hand labels were consistent, so that means the pipeline doesn't match my thought process yet.
 
+
+---
+
+## Week 4 — Punctuation collisions
+
+### Collision count — canonical register
+
+**Date:** 20/10
+
+**Setup**
+- Source:      `nz_vehicle_resolver/data/mvr_canonical_vehicles.csv` (12,728 MAKE|MODEL pairs, `fleet_count >= 10`)
+- Collision:   two or more pairs with the same make whose models are identical after upper-casing and removing every character that isn't a letter or digit (CR-V / CRV, MX-5 / MX5, B 2000 / B2000)
+- Counted:     groups = number of colliding keys; pairs involved = total pairs inside those groups
+- Not run yet: no query on the register for this count before the prediction below.
+
+**Prediction**: written before running the count
+- Groups: 382             
+- Pairs involved: 764      
+- Reasoning (one or two lines): 3% of the listings in the dev set had multible vehicles with different spellings in the registry. Of those, they had two entries with different spellings.
+- Written at: 07:07 on 20/10.
+
+**Result**
+- Groups:               625
+- Pairs involved:       1,334 (10.5% of 12,728)
+- Measured at: 18:31 on 20/10
+
+**Read the groups**: list the top 10 by fleet count
+
+| Make | Key | Register spellings | Fleet counts |
+|---|---|---|---|
+| TRAILER | HOMEBUILT | HOMEBUILT / HOME BUILT / HOME-BUILT / HOMEBUILT\` | 47,601 / 5,348 / 127 / 15 |
+| HONDA | CRV | CRV / CR-V | 32,725 / 843 |
+| TRAILER | HOMEMADE | HOMEMADE / HOME MADE / HOME-MADE | 27,054 / 2,055 / 103 |
+| TRAILER | DOMESTIC | DOMESTIC / DOMESTIC\` | 22,085 / 10 |
+| FACTORY BUILT | BRENTSMITHTRAILERS | BRENT SMITH TRAILERS / BRENTSMITH TRAILERS | 8,339 / 11 |
+| TRAILER | BOATTRAILER | BOAT TRAILER / BOATTRAILER | 7,194 / 14 |
+| TRAILER | JETSKI | JETSKI / JET SKI / JET-SKI | 5,106 / 1,350 / 58 |
+| TRAILER | IFORWILLIAMS | IFOR WILLIAMS / I FOR WILLIAMS / IFORWILLIAMS | 6,066 / 220 / 183 |
+| TRAILER | FACTORYBUILT | FACTORY BUILT / FACTORYBUILT | 4,590 / 553 |
+| TRAILER | ROADCHIEF | ROAD CHIEF / ROADCHIEF | 3,000 / 1,831 |
+
+**Explanation**
+- Why the gap: Most of the groups with multiple spellings are trailers, not vehicles. I made my prediction based off the dev set which only has vehicles.
+- Held-out impact (already measured): 1 wrong label, 2 abstentions (category 1).
+- README line: 625 groups collide, covering 1,334 of the 12,728 pairs (10.5%); most are trailer models, HONDA CRV / CR-V is the largest vehicle group.
+
 ---
 
 ## Calibration table
@@ -1842,7 +1888,7 @@ Fill the row at the same time as the entry. Never backfill from memory.
 | 4 | held-out score | 90% | 86% | -4pp |
 | 4 | held-out precision | 100% | 95.4% | -4.6pp |
 | 4 | held-out coverage | 88% | 87% | -1pp |
-|  |  |  |  |  |
+| 4 | collision groups | 382 | 625 | +243 |
 |  |  |  |  |  |
 |  |  |  |  |  |
 |  |  |  |  |  |
