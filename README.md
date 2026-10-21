@@ -7,10 +7,10 @@ the JDM name, the export name and the chassis code all disagree with each other.
 
 Returning `None` is a first-class outcome.
 
-**Status: pre-v0.1.0.** Instrument built, corpus collected, gold set drawn and
-labelled, 100 dev / 100 held-out. Week 2 complete: five reps measured on the
-dev set. Next: Week 3, Trade Me sandbox sync and failure injection. TODO:
-held-out score (Week 4).
+**Status: v0.1.0.** Instrument built, corpus collected, gold set drawn and
+labelled (100 dev / 100 held-out). Five reps measured on dev. Held-out score:
+86/100 (Wilson 95%: 77.9–91.5%). Week 3 sync failures are logged but not fixed
+(see Limitations).
 
 ## The two functions
 
@@ -86,7 +86,7 @@ CARPARC_GOLD=data/gold_vehicles_dev.csv python3 harness.py
 
 200 vehicles drawn from the corpus with a fixed seed, split 100 dev / 100
 held-out. **The held-out set was touched three times: at labelling, when it was
-re-labelled to the current rules in Week 4, and for the single Week 4 run.**
+re-labelled to the current rules in Week 4, and for the single Week 4 run.** Held-out score: 86/100.
 The re-label showed the old-rules `NONE` count (3 / 100); nothing was run on it.
 
 ```bash
@@ -104,6 +104,7 @@ python3 label_vehicles.py         # labels the dev set
 | 3 | alias table (top 40 vehicles, 39.6% of fleet) name match first, chassis code only when no name matches; alias names that are separate register models dropped | 94/100 (0.94) | 100 |
 | 4 | LLM copies make, model and chassis code verbatim from the title; Rep 3's matcher does the lookup | 95/100 (0.95) | 100 |
 | 5 | Rep 4, returning `NONE` on any tie between candidate vehicles | 93/100 (0.93); precision 92/92 (1.00), coverage 92/100 (0.92) | 100 |
+| 5 | Rep 5 on the held-out set (single run) | 86/100 (0.86) | 100 |
 
 The dev gold changed between Rep 2 and Rep 3: labels were split into model and
 variant, and three BMW rows moved to the parent line (3 Series, 5 Series).
