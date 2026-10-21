@@ -195,6 +195,10 @@ Measurement:
 - Partsworld's catalogue is semi-structured (`Make Model - Variant`), so it is
   a cleaner noisy side than free-text marketplace listings would be.
 
+## AI use
+
+This project was built using Claude Code (Anthropic).
+
 ## Licence
 
 Code is MIT (see `LICENSE`).
