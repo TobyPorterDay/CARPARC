@@ -8,7 +8,13 @@ data/*_raw.csv
 __pycache__/
 *.pyc
 .venv/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
 .env
+.env.*
+!.env.example
 .DS_Store
 .claude/settings.local.json
 

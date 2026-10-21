@@ -197,4 +197,10 @@ Measurement:
 
 ## Licence
 
+Code is MIT (see `LICENSE`).
+
 Vehicle data © NZ Transport Agency Waka Kotahi, CC-BY 4.0.
+
+Listing and vehicle titles in `data/` and `Labels.csv` were scraped from
+partsworld.co.nz. They are included only to reproduce the measurements here
+and are not covered by the MIT licence.
